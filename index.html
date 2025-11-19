@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>雙向翻牌 — 疊加匯入 & 註解版</title>
+
+<style>
+:root{
+  /* --accent: 主色調 (目前是藍色) */
+  --bg:#f6f7fb; --card:#fff; --accent:#2b6cb0; --muted:#718096; --max-width:980px;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); margin:0; padding:18px; font-family:system-ui,"Noto Sans TC";
+}
+.container{max-width:var(--max-width); margin:auto; display:flex; flex-direction:column; gap:20px}
+
+/* 卡片樣式 */
+.card{background:#fff; border-radius:12px; padding:20px; box-shadow:0 6px 18px rgba(20,20,40,.06)}
+
+/* 模式按鈕 (中英隨機、中翻英...) */
+.modes{display:flex; gap:8px; flex-wrap:wrap}
+.mode-btn{background:#e6eef9; color:var(--accent); padding:8px 12px; border-radius:8px; border:1px solid rgba(43,108,176,.1); cursor:pointer}
+.mode-btn.active{background:var(--accent); color:#fff}
+
+/* 單字顯示區 */
+.big{font-size:36px; font-weight:700; text-align:center; white-space:pre-wrap; min-height: 1.5em;}
+.small{text-align:center; color:#4a5568; min-height: 1.5em;}
+
+/* 按鈕群組 */
+.controls{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:6px}
+.btn{padding:10px 14px; border-radius:10px; border:0; cursor:pointer; font-weight:600; background:var(--accent); color:#fff}
+.btn.secondary{background:#edf2f7; color:#1a202c}
+
+/* 設定區塊 */
+textarea{width:100%; min-height:150px; padding:10px; border:1px solid #ccc; border-radius:8px; font-family:monospace}
+.settings{display:flex; flex-direction:column; gap:10px}
+.row{display:flex; gap:8px; flex-wrap:wrap; align-items: center;}
+#statusMsg { color: var(--accent); font-size: 0.9em; }
+input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 6px; width: 150px; }
+
+@media(max-width:480px){.big{font-size:28px}}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div class="card">
+  <div class="modes">
+    <button id="m0" class="mode-btn active">中英隨機</button>
+    <button id="m1" class="mode-btn">中文→英文</button>
+    <button id="m2" class="mode-btn">英文→中文</button>
+  </div>
+
+  <div class="big" id="card">按「下一題」開始</div>
+  <div class="small" id="hint">方向：—</div>
+
+  <div class="controls">
+    <button id="showBtn" class="btn">顯示翻譯</button>
+    <button id="nextBtn" class="btn">下一題</button>
+  </div>
+</div>
+
+<div class="card settings">
+  <label>目前題庫內容（可手動編輯）：</label>
+  <textarea id="pairs" placeholder="這裡會顯示匯入的單字，也可以直接在這裡打字..."></textarea>
+
+  <div class="row">
+    <label>工作表名稱：</label>
+    <input type="text" id="sheetNameInput" value="1" placeholder="例如: 工作表1">
+    <button id="importBtn" class="btn">疊加匯入</button>
+    <button id="clearBtn" class="btn secondary">清空題庫</button>
+    <span id="statusMsg"></span>
+  </div>
+  <small style="color:#666">輸入下方工作表名稱後按匯入 (會保留舊單字並加入新單字)</small>
+
+  <hr style="width:100%; border:0; border-top:1px solid #eee; margin: 10px 0;">
+
+  <div class="row">
+    <label>預覽 / 尋找工作表名稱：</label>
+  </div>
+  
+  <iframe id="sheetFrame" src="" style="width:100%;height:500px;border:1px solid #ccc;border-radius:6px;background:#eee;"></iframe>
+
+</div>
+
+</div>
+
+<script>
+/* ==================================================
+   1. 全域設定 (Global Settings)
+   ================================================== */
+// 請在這裡換成你的 Google Sheet ID
+const SHEET_ID = "1qY6YKGRflP_7Pobrp9nWC6KieqkxzZHus1tYvKL3SIg"; 
+
+// 初始化下方的 Iframe，設定為編輯模式
+// rm=minimal 參數用來讓介面更乾淨 (隱藏上方選單)
+document.getElementById("sheetFrame").src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?rm=minimal`;
+
+// 全域變數：用來儲存目前所有的單字
+let pairs = [];      // 存放單字物件的陣列 [{zh:'蘋果', en:'Apple'}, ...]
+let current = null;  // 目前顯示的那一題
+let mode = 0;        // 目前的模式 (0=隨機, 1=中翻英, 2=英翻中)
+const NL = "\n";     // 換行符號
+
+/* ==================================================
+   2. 工具函式 (Helper Functions)
+   這些是用來處理文字、判斷語言的小工具
+   ================================================== */
+
+// 將一整段文字切成一行一行 (相容 Windows/Mac 換行符號)
+function safeSplitLines(text){
+  return text.split(/\r?\n/).filter(x => x.trim());
+}
+
+// 判斷字串裡面有沒有中文字 (用 Unicode 範圍判斷)
+function containsCJK(str){
+  return /[\u4E00-\u9FFF]/.test(str);
+}
+
+// 核心功能：將文字 (CSV) 解析成單字物件
+function parsePairs(text){
+  const lines = safeSplitLines(text);
+  const arr=[];
+  for(const l of lines){
+    let sep = null;
+    // 偵測分隔符號：支援 " - ", ",", "TAB"
+    if(l.includes(" - ")) sep = " - ";
+    else if(l.includes(",")) sep = ",";
+    else if(l.includes("\t")) sep = "\t";
+    
+    if(!sep) continue; // 找不到分隔符號就跳過這行
+    
+    let p = l.split(sep).map(x=>x.trim());
+    if(p.length < 2) continue; // 如果切開後沒有兩個部分就跳過
+
+    // 語言自動歸類
+    // 邏輯：如果有中文字的那邊當作 zh (中文)，另一邊當 en (英文)
+    let a = p[0], b = p[1];
+    if(containsCJK(a)) arr.push({zh:a, en:b});
+    else if(containsCJK(b)) arr.push({zh:b, en:a});
+    else arr.push({zh:a, en:b}); // 如果都沒中文，預設左邊是中文位置
+  }
+  return arr;
+}
+
+/* ==================================================
+   3. 顯示與互動邏輯 (Display Logic)
+   控制卡片上要顯示什麼文字
+   ================================================== */
+
+// DOM 元素抓取 (把網頁上的元件抓到 JS 裡控制)
+const cardEl = document.getElementById("card");
+const hintEl = document.getElementById("hint");
+const showBtn = document.getElementById("showBtn");
+const statusMsg = document.getElementById("statusMsg");
+const textArea = document.getElementById("pairs");
+
+// 隨機抽一題
+function pickRandom(){
+  if(!pairs.length) return null;
+  // 隨機選一個索引
+  const p = pairs[Math.floor(Math.random() * pairs.length)];
+  let d = 0;
+  // 根據模式決定方向
+  if(mode===0) d = Math.random() < 0.5 ? 0 : 1; // 隨機
+  else if(mode===1) d = 1; // 中->英
+  else d = 0; // 英->中
+  return {p, d}; // 回傳題目(p)和方向(d)
+}
+
+// 渲染題目 (顯示在卡片上)
+function render(){
+  if(!current){
+    cardEl.textContent = pairs.length ? "請按下一題" : "題庫為空";
+    hintEl.textContent = "";
+    return;
+  }
+  // d=0: 顯示英文 (答案是中文)
+  if(current.d === 0){
+    cardEl.textContent = current.p.en;
+    hintEl.textContent = "方向：英文 → 中文";
+  } else {
+    // d=1: 顯示中文 (答案是英文)
+    cardEl.textContent = current.p.zh;
+    hintEl.textContent = "方向：中文 → 英文";
+  }
+  showBtn.textContent = "顯示翻譯";
+}
+
+// 顯示答案
+function showAns(){
+  if(!current) return;
+  const gap = NL + NL; // 中間空兩行
+  if(current.d === 0)
+    cardEl.textContent = current.p.en + gap + current.p.zh;
+  else
+    cardEl.textContent = current.p.zh + gap + current.p.en;
+  showBtn.textContent = "隱藏翻譯";
+}
+
+/* ==================================================
+   4. Google Sheets 匯入邏輯 (Import Logic)
+   ================================================== */
+async function importSheet(){
+  statusMsg.textContent = "讀取中...";
+  
+  // 取得使用者輸入的工作表名稱
+  const sheetName = document.getElementById("sheetNameInput").value.trim();
+  
+  // 組合 Google API 網址
+  let url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+  if(sheetName) {
+    url += `&sheet=${encodeURIComponent(sheetName)}`;
+  }
+
+  try {
+    // 發送請求抓取資料
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("讀取失敗");
+    
+    let csv = await res.text();
+    
+    // 檢查是不是權限錯誤 (Google 有時會回傳 HTML 登入頁面)
+    if(csv.trim().startsWith("<!doctype html") || csv.includes("GOOGLE_SIGN_IN")){
+        throw new Error("權限不足 (請確認已發布到網路)");
+    }
+
+    // 將 CSV 切成行
+    let lines = safeSplitLines(csv);
+
+    /* 【修改點】: 這裡不再刪除第一行
+       舊程式碼: if(lines.length > 0) lines.shift(); 
+       現在直接從第一行開始讀取
+    */
+    
+    let newLinesText = []; // 用來暫存整理過的文字
+    
+    for(let L of lines){
+      // 簡易 CSV 清理：移除 Excel 可能產生的多餘引號
+      let cleanL = L.replace(/""/g, '"'); 
+      let parts = cleanL.split(","); 
+
+      if(parts.length < 2) continue;
+      
+      let c1 = parts[0].replace(/^"|"$/g, '').trim();
+      let c2 = parts[1].replace(/^"|"$/g, '').trim();
+      
+      if(c1 && c2) newLinesText.push(`${c1} - ${c2}`);
+    }
+
+    if(newLinesText.length === 0) {
+        throw new Error("沒有抓到資料");
+    }
+
+    // 解析這一次抓到的新單字
+    let newPairs = parsePairs(newLinesText.join("\n"));
+
+    // 【修改點】: 疊加模式 (Append)
+    // 將新單字 (newPairs) 接在舊單字 (pairs) 後面
+    pairs = pairs.concat(newPairs);
+
+    // 更新畫面上的文字框，讓使用者看到現在總共有哪些單字
+    // 重新產生文字內容：把 pairs 陣列轉回文字字串
+    let allContent = pairs.map(p => `${p.zh} - ${p.en}`).join("\n");
+    textArea.value = allContent;
+
+    // 隨機選一題並顯示
+    current = pickRandom();
+    render();
+    
+    statusMsg.textContent = `已加入 ${newPairs.length} 個單字 (總計: ${pairs.length})`;
+    
+  } catch(e) {
+    console.error(e);
+    statusMsg.textContent = "錯誤：" + e.message;
+    alert("讀取失敗，請確認工作表名稱正確。");
+  }
+}
+
+/* ==================================================
+   5. 按鈕事件監聽 (Event Listeners)
+   綁定按鈕的點擊動作
+   ================================================== */
+
+// 匯入按鈕
+document.getElementById("importBtn").onclick = () => {
+  importSheet();
+};
+
+// 清空按鈕
+document.getElementById("clearBtn").onclick = () => {
+  textArea.value = "";
+  pairs = []; // 清空陣列
+  current = null;
+  render();
+  statusMsg.textContent = "已清空";
+};
+
+// 下一題按鈕
+document.getElementById("nextBtn").onclick = () => {
+  current = pickRandom();
+  render();
+};
+
+// 顯示/隱藏翻譯按鈕
+showBtn.onclick = () => {
+  if(showBtn.textContent.includes("顯示")) showAns();
+  else render();
+};
+
+// 模式切換按鈕 (m0, m1, m2)
+["m0","m1","m2"].forEach((id, i) => {
+  document.getElementById(id).onclick = () => {
+    mode = i; // 更新模式變數
+    current = pickRandom(); // 重新抽題
+    // 更新按鈕樣式 (把被點到的按鈕變成 active)
+    ["m0","m1","m2"].forEach((x, j) => {
+      document.getElementById(x).classList.toggle("active", j === i);
+    });
+    render();
+  };
+});
+</script>
+</body>
+</html>

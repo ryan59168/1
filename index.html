@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title></title>
+<meta name="robots" content="noindex">
+<title>單字練習_雙向翻牌</title>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -299,7 +300,6 @@ const SHEET_ID = "16y8_QTo0QrQe5El9ylVvps94mhNi7zRuErIrxRkwoQc";
 
 // 初始化 Iframe
 const sheetFrame = document.getElementById("sheetFrame");
-// 為了讓您可以編輯，必須使用 edit 結尾的連結，而不是 pubhtml
 sheetFrame.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?rm=minimal`;
 
 /* ================= 變數宣告 ================= */
@@ -332,11 +332,10 @@ function nextCard() {
 
   // 模式 3: 依序瀏覽
   if (mode === 3) {
-    // 確保 seqIndex 在範圍內
     if (seqIndex >= pairs.length) seqIndex = 0; 
     const p = pairs[seqIndex];
     current = { p: p, d: 3 }; 
-    seqIndex++; // 準備下一次
+    seqIndex++; 
   } 
   // 其他模式: 隨機
   else {
@@ -356,25 +355,15 @@ function prevCard() {
   if (!pairs.length) return;
   
   if (mode === 3) {
-    // 因為 nextCard 已經把 seqIndex 加 1 了，所以要退兩步才是「上一題」
-    // 或者直接操作索引
-    // 當前顯示的是 seqIndex - 1 (因為 nextCard 執行完後 seqIndex 指向了下一個)
-    
-    // 修正邏輯：直接減 2 (退回當前，再退回上一個)
     seqIndex -= 2;
-    
-    // 邊界處理
     if (seqIndex < 0) {
-        // 如果變成負數，繞回最後
-        seqIndex = pairs.length + seqIndex; // 例如 -1 變成 length-1
+        seqIndex = pairs.length + seqIndex; 
     }
-    
-    // 確保不越界 (如果 pairs.length 為 1 的特殊情況)
     if (seqIndex < 0) seqIndex = 0;
 
     const p = pairs[seqIndex];
     current = { p: p, d: 3 };
-    seqIndex++; // 恢復指針指向下一個
+    seqIndex++; 
     
     render();
   }
@@ -386,12 +375,20 @@ function render() {
   subTextEl.textContent = ""; 
   speakBtn.classList.add("hidden");
 
-  // 按鈕文字重置
+  // 只要有題目，一律顯示發音按鈕 (不論模式)
+  if (current) {
+    speakBtn.classList.remove("hidden");
+    speakBtn.onclick = (e) => {
+        e.stopPropagation(); // 防止觸發卡片其他點擊事件
+        speak(current.p.en); // 固定讀取英文部分
+    };
+  }
+
+  // 按鈕文字處理
   if (mode === 3) {
       showBtn.textContent = "上一題";
       nextBtn.textContent = "下一題";
   } else {
-      // 其他模式預設
       if (current && current.d === 0) showBtn.textContent = "顯示中文";
       else showBtn.textContent = "顯示英文";
       
@@ -408,31 +405,17 @@ function render() {
 
   showBtn.disabled = false;
 
-  // 依據模式顯示
+  // 依據模式顯示內容
   if (mode === 3) {
-    // 依序瀏覽：直接全顯示
     mainTextEl.textContent = current.p.zh;
     subTextEl.textContent = current.p.en;
-    
-    // 顯示目前進度 (seqIndex 已經+1，所以剛好是當前頁碼)
-    // 如果剛按過上一題，seqIndex 也調整好了
-    // 這裡顯示的是 "當前頁 / 總頁數"
-    // 注意：nextCard 裡 seqIndex 已經是指向「下一個」了，所以當前是 seqIndex
     hintEl.textContent = `順序瀏覽: ${seqIndex} / ${pairs.length}`;
-    
-    // 顯示發音鈕
-    speakBtn.classList.remove("hidden");
-    speakBtn.onclick = () => speak(current.p.en);
 
   } else if (current.d === 0) {
     // 英 -> 中
     mainTextEl.textContent = current.p.en;
     hintEl.textContent = "英文 → 中文";
     showBtn.textContent = "顯示中文";
-    
-    // 顯示發音鈕
-    speakBtn.classList.remove("hidden");
-    speakBtn.onclick = () => speak(current.p.en);
 
   } else {
     // 中 -> 英
@@ -450,8 +433,6 @@ function showAnswer() {
     subTextEl.textContent = current.p.zh;
   } else {
     subTextEl.textContent = current.p.en;
-    speakBtn.classList.remove("hidden");
-    speakBtn.onclick = () => speak(current.p.en);
   }
   
   showBtn.textContent = "隱藏翻譯";
@@ -573,7 +554,7 @@ showBtn.onclick = () => {
   }
 };
 
-// Iframe 展開/隱藏 (解決跳動問題)
+// Iframe 展開/隱藏
 toggleSheetBtn.onclick = () => {
   if (sheetContainer.style.display === 'block') {
     sheetContainer.style.display = 'none';
@@ -589,10 +570,8 @@ const modeBtns = ["m0", "m1", "m2", "m3"];
 modeBtns.forEach((id, index) => {
   document.getElementById(id).onclick = () => {
     mode = index;
-    // 重置順序索引
     if (mode === 3) seqIndex = 0;
     
-    // 更新 UI
     modeBtns.forEach((x, j) => {
       document.getElementById(x).classList.toggle("active", j === index);
     });
@@ -610,5 +589,4 @@ textArea.addEventListener('input', () => {
 
 </script>
 </body>
-
 </html>

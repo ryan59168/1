@@ -540,7 +540,7 @@ async function importSheet() {
     console.error(e);
     statusMsg.textContent = "失敗: " + e.message;
     statusMsg.style.color = "red";
-    alert("匯入失敗，請檢查工作表名稱是否正確 (且權限為公開)。");
+    alert("匯入失敗，請檢查工作表名稱是否正確。");
   }
 }
 
@@ -610,4 +610,5 @@ textArea.addEventListener('input', () => {
 
 </script>
 </body>
+
 </html>

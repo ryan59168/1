@@ -104,7 +104,7 @@ body {
   color: var(--accent);
   margin-top: 12px;
   font-weight: 750;
-  line-height: 1.3;    
+  line-height: 1.3;     
   white-space: pre-wrap;
 }
 
@@ -184,12 +184,11 @@ input[type="text"] {
   min-width: 120px;
 }
 
-/* ★ 調整點：使用 vw 單位，讓高度根據螢幕寬度調整 */
 textarea {
   width: 100%;
-  height: 20vw; /* 螢幕寬度的 40% 高度 */
-  max-height: 500px; /* 限制最大高度，避免在桌機上過高 */
-  min-height: 250px; /* 保留最小高度 */
+  height: 20vw; 
+  max-height: 500px; 
+  min-height: 250px; 
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -198,34 +197,26 @@ textarea {
   margin-bottom: 10px;
 }
 
-/* 收合元件 (Details/Summary) */
-details {
-  background: #f7fafc;
-  border-radius: 8px;
+/* iframe 容器控制 */
+.sheet-container {
+  margin-top: 10px;
   border: 1px solid var(--border);
+  border-radius: 8px;
   overflow: hidden;
+  display: none; /* 預設隱藏 */
 }
-summary {
-  padding: 12px;
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--text-main);
-  list-style: none; /* 隱藏預設箭頭 */
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.sheet-container.active {
+  display: block;
 }
-summary::after { content: '+'; font-size: 1.2em; color: var(--text-sub); }
-details[open] summary::after { content: '-'; }
-details[open] summary { border-bottom: 1px solid var(--border); }
 
 iframe {
   width: 100%;
-  height: 75vw; /* 螢幕寬度的 40% 高度 */
-  max-height: 700px; /* 限制最大高度，避免在桌機上過高 */
-  min-height: 500px; /* 保留最小高度 */ 
+  height: 75vw; 
+  max-height: 700px; 
+  min-height: 500px;  
   border: none;
   background: #fff;
+  display: block;
 }
 
 #statusMsg { font-size: 14px; color: var(--accent); margin-left: 4px; }
@@ -280,12 +271,15 @@ iframe {
 
     <textarea id="pairs" placeholder="題庫內容 (格式: 中文 - 英文)"></textarea>
     
-    <details>
-      <summary>預覽 Google 試算表 (點擊展開)</summary>
+    <button id="toggleSheetBtn" class="btn btn-secondary" style="width:100%; padding:10px; font-size:0.9rem;">
+      ▼ 展開/隱藏 Google 試算表 (預覽與編輯)
+    </button>
+    <div id="sheetContainer" class="sheet-container">
       <iframe id="sheetFrame" src=""></iframe>
-    </details>
+    </div>
+
     <small style="color:#718096; display:block; margin-top:8px;">
-      * 為了在手機上獲得最佳體驗，預覽框預設收合。
+      * 若要編輯，請直接在下方表格操作（變更會自動儲存到 Google Sheet，請重新匯入以更新題庫）。
     </small>
   </div>
 
@@ -293,23 +287,18 @@ iframe {
 
 <script>
 /* ==================================================
-   ★ 設定區：請在這裡更換您的 Google Sheet ID
-   ================================================== 
-   1. 您的 Excel (Google Sheet) 必須先發布到網路：
-      檔案 > 共用 > 發布到網路 > 整個文件 > 網頁 (或 CSV) > 發布
-   2. 從網址列複製 ID，例如：
-      https://docs.google.com/spreadsheets/d/【1qY6...這個就是ID...us1tYvKL3SIg】/edit
-   3. 將下方的引號內換成您的 ID
-*/
-const SHEET_ID = "1qY6YKGRflP_7Pobrp9nWC6KieqkxzZHus1tYvKL3SIg"; 
+   ★ 設定區：更新後的 ID
+   ================================================== */
+const SHEET_ID = "16y8_QTo0QrQe5El9ylVvps94mhNi7zRuErIrxRkwoQc"; 
 
-// 初始化 Iframe (預覽區)
+// 初始化 Iframe
 const sheetFrame = document.getElementById("sheetFrame");
+// 為了讓您可以編輯，必須使用 edit 結尾的連結，而不是 pubhtml
 sheetFrame.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?rm=minimal`;
 
 /* ================= 變數宣告 ================= */
 let pairs = [];        // 單字庫
-let current = null;    // 目前的題目物件 {p: {zh, en}, d: 方向}
+let current = null;    // 目前的題目物件
 let mode = 0;          // 0:隨機, 1:中>英, 2:英>中, 3:依序瀏覽
 let seqIndex = 0;      // 順序模式的指標
 
@@ -322,10 +311,12 @@ const showBtn = document.getElementById("showBtn");
 const nextBtn = document.getElementById("nextBtn");
 const textArea = document.getElementById("pairs");
 const statusMsg = document.getElementById("statusMsg");
+const toggleSheetBtn = document.getElementById("toggleSheetBtn");
+const sheetContainer = document.getElementById("sheetContainer");
 
 /* ================= 核心邏輯 ================= */
 
-// 1. 準備題目
+// 1. 下一題 (Next)
 function nextCard() {
   if (!pairs.length) {
     current = null;
@@ -333,14 +324,15 @@ function nextCard() {
     return;
   }
 
-  // 模式 3: 依序瀏覽 (同時顯示)
+  // 模式 3: 依序瀏覽
   if (mode === 3) {
-    if (seqIndex >= pairs.length) seqIndex = 0; // 循環
+    // 確保 seqIndex 在範圍內
+    if (seqIndex >= pairs.length) seqIndex = 0; 
     const p = pairs[seqIndex];
-    current = { p: p, d: 3 }; // d=3 代表雙語模式
-    seqIndex++;
+    current = { p: p, d: 3 }; 
+    seqIndex++; // 準備下一次
   } 
-  // 其他模式: 隨機 or 指定方向
+  // 其他模式: 隨機
   else {
     const p = pairs[Math.floor(Math.random() * pairs.length)];
     let d = 0;
@@ -353,11 +345,52 @@ function nextCard() {
   render();
 }
 
-// 2. 渲染畫面
+// 2. 上一題 (Previous) - 僅用於模式3
+function prevCard() {
+  if (!pairs.length) return;
+  
+  if (mode === 3) {
+    // 因為 nextCard 已經把 seqIndex 加 1 了，所以要退兩步才是「上一題」
+    // 或者直接操作索引
+    // 當前顯示的是 seqIndex - 1 (因為 nextCard 執行完後 seqIndex 指向了下一個)
+    
+    // 修正邏輯：直接減 2 (退回當前，再退回上一個)
+    seqIndex -= 2;
+    
+    // 邊界處理
+    if (seqIndex < 0) {
+        // 如果變成負數，繞回最後
+        seqIndex = pairs.length + seqIndex; // 例如 -1 變成 length-1
+    }
+    
+    // 確保不越界 (如果 pairs.length 為 1 的特殊情況)
+    if (seqIndex < 0) seqIndex = 0;
+
+    const p = pairs[seqIndex];
+    current = { p: p, d: 3 };
+    seqIndex++; // 恢復指針指向下一個
+    
+    render();
+  }
+}
+
+// 3. 渲染畫面
 function render() {
   // 重置狀態
   subTextEl.textContent = ""; 
   speakBtn.classList.add("hidden");
+
+  // 按鈕文字重置
+  if (mode === 3) {
+      showBtn.textContent = "上一題";
+      nextBtn.textContent = "下一題";
+  } else {
+      // 其他模式預設
+      if (current && current.d === 0) showBtn.textContent = "顯示中文";
+      else showBtn.textContent = "顯示英文";
+      
+      nextBtn.textContent = "下一題";
+  }
 
   if (!current) {
     mainTextEl.textContent = pairs.length ? "請按下一題" : "題庫為空";
@@ -374,8 +407,12 @@ function render() {
     // 依序瀏覽：直接全顯示
     mainTextEl.textContent = current.p.zh;
     subTextEl.textContent = current.p.en;
+    
+    // 顯示目前進度 (seqIndex 已經+1，所以剛好是當前頁碼)
+    // 如果剛按過上一題，seqIndex 也調整好了
+    // 這裡顯示的是 "當前頁 / 總頁數"
+    // 注意：nextCard 裡 seqIndex 已經是指向「下一個」了，所以當前是 seqIndex
     hintEl.textContent = `順序瀏覽: ${seqIndex} / ${pairs.length}`;
-    showBtn.textContent = "下一個"; // 此模式下顯示按鈕功能等同下一題
     
     // 顯示發音鈕
     speakBtn.classList.remove("hidden");
@@ -399,38 +436,33 @@ function render() {
   }
 }
 
-// 3. 顯示答案 (翻牌)
+// 4. 顯示答案 (翻牌) - 僅用於模式 0, 1, 2
 function showAnswer() {
   if (!current) return;
   
   if (current.d === 0) {
-    // 目前是英文，顯示中文
     subTextEl.textContent = current.p.zh;
   } else {
-    // 目前是中文，顯示英文
     subTextEl.textContent = current.p.en;
-    // 翻出英文時，也順便顯示發音鈕
     speakBtn.classList.remove("hidden");
     speakBtn.onclick = () => speak(current.p.en);
   }
   
-  // 顯示後，按鈕文字變成「隱藏」
   showBtn.textContent = "隱藏翻譯";
 }
 
-// 隱藏答案
+// 5. 隱藏答案
 function hideAnswer() {
   subTextEl.textContent = "";
-  // 把按鈕文字還原回去
   if (current.d === 0) showBtn.textContent = "顯示中文";
   else showBtn.textContent = "顯示英文";
 }
 
-/* ================= 發音功能 (Web Speech API) ================= */
+/* ================= 發音功能 ================= */
 function speak(text) {
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-US'; // 設定為美式英文
+  utterance.lang = 'en-US'; 
   utterance.rate = 0.9;     
   window.speechSynthesis.speak(utterance);
 }
@@ -490,21 +522,19 @@ async function importSheet() {
     if (!newLinesText.length) throw new Error("無資料");
 
     let newPairs = parsePairs(newLinesText.join("\n"));
-    pairs = pairs.concat(newPairs); // 疊加
+    pairs = pairs.concat(newPairs); 
     
-    // 更新 UI
     textArea.value = pairs.map(p => `${p.zh} - ${p.en}`).join("\n");
     statusMsg.textContent = `成功加入 ${newPairs.length} 筆 (共 ${pairs.length} 筆)`;
     statusMsg.style.color = "green";
 
-    // 如果目前沒題目，直接開始
     if (!current) nextCard();
 
   } catch (e) {
     console.error(e);
     statusMsg.textContent = "失敗: " + e.message;
     statusMsg.style.color = "red";
-    alert("匯入失敗，請檢查工作表名稱是否正確。");
+    alert("匯入失敗，請檢查工作表名稱是否正確 (且權限為公開)。");
   }
 }
 
@@ -521,21 +551,30 @@ document.getElementById("clearBtn").onclick = () => {
 
 nextBtn.onclick = nextCard;
 
-// 按鈕邏輯增加「顯示 <-> 隱藏」切換
+// 按鈕邏輯：根據模式決定行為
 showBtn.onclick = () => {
-  // 如果是模式 3 (依序瀏覽)，這個按鈕功能維持「下一個」
+  // 模式 3: 上一題
   if (mode === 3) {
-    nextCard();
+    prevCard();
     return;
   }
 
-  // 判斷目前是否有顯示答案 (檢查 subText 內容是否為空)
+  // 其他模式: 顯示/隱藏
   if (subTextEl.textContent.trim() === "") {
-    // 沒有答案 -> 顯示
     showAnswer();
   } else {
-    // 已有答案 -> 隱藏
     hideAnswer();
+  }
+};
+
+// Iframe 展開/隱藏 (解決跳動問題)
+toggleSheetBtn.onclick = () => {
+  if (sheetContainer.style.display === 'block') {
+    sheetContainer.style.display = 'none';
+    toggleSheetBtn.textContent = '▼ 展開/隱藏 Google 試算表 (預覽與編輯)';
+  } else {
+    sheetContainer.style.display = 'block';
+    toggleSheetBtn.textContent = '▲ 收起 Google 試算表';
   }
 };
 

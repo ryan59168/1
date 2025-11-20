@@ -271,9 +271,15 @@ iframe {
 
     <textarea id="pairs" placeholder="題庫內容 (格式: 中文 - 英文)"></textarea>
     
-    <button id="toggleSheetBtn" class="btn btn-secondary" style="width:100%; padding:10px; font-size:0.9rem;">
-      ▼ 展開/隱藏 Google 試算表 (預覽與編輯)
-    </button>
+    <div style="display:flex; gap:8px;">
+      <button id="toggleSheetBtn" class="btn btn-secondary" style="flex:1; padding:10px; font-size:0.9rem;">
+        ▼ 展開/隱藏 Google 試算表 (預覽與編輯)
+      </button>
+      <a href="https://docs.google.com/spreadsheets/d/16y8_QTo0QrQe5El9ylVvps94mhNi7zRuErIrxRkwoQc/edit?usp=sharing" target="_blank" class="btn btn-secondary" style="padding:10px; font-size:0.9rem; text-decoration:none; display:flex; align-items:center; justify-content:center;">
+        ↗ 開啟試算表
+      </a>
+    </div>
+    
     <div id="sheetContainer" class="sheet-container">
       <iframe id="sheetFrame" src=""></iframe>
     </div>

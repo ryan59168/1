@@ -20,8 +20,8 @@ export default async function handler(req, res) {
         throw new Error("伺服器端未設定 API Key");
     }
 
-    // 4. 定義 Google Gemini 的網址 (使用 gemini-1.5-flash 模型，速度快且便宜/免費)
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // 4. 定義 Google Gemini 的網址 (使用 gemini-2.5-flash 模型，速度快且便宜/免費)
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     // 5. 幫你去向 Google 請求資料
     const response = await fetch(url, {
@@ -50,4 +50,5 @@ export default async function handler(req, res) {
     console.error('API Error:', error);
     res.status(500).json({ error: '伺服器處理發生錯誤', details: error.message });
   }
+
 }

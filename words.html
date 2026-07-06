@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能單字字典與即時對話</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif;
+        }
+        /* 自訂精美滾動條 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-md shadow-indigo-100">
+                    <i class="fa-solid fa-book-open text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Gemini AI LexiChat</h1>
+                    <p class="text-xs text-slate-400">智慧字彙查詢與即時英語學習伴讀</p>
+                </div>
+            </div>
+            
+            <!-- 生字本與設定區（API Key 由後端環境變數提供） -->
+            <div class="flex items-center space-x-3">
+                <!-- 📚 頂部生字本快速入口 -->
+                <button onclick="toggleVocabDrawer()" class="flex items-center space-x-1 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold border border-rose-100 transition shadow-sm">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                    <span class="hidden sm:inline">生字本</span>
+                    <span id="vocabCountBadge" class="bg-rose-500 text-white text-[10px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold">0</span>
+                </button>
+                <div class="flex space-x-2">
+                    <button onclick="openConfigModal()" class="text-slate-500 hover:text-indigo-600 p-2 rounded-lg hover:bg-slate-100 transition" title="設定與模型切換">
+                        <i class="fa-solid fa-cog text-lg"></i>
+                    </button>
+                    <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-medium flex items-center space-x-1">
+                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse mr-1"></span>
+                        AI 連線就緒
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col lg:flex-row gap-6 overflow-hidden">
+        
+        <!-- 左側：查詢與字典卡片區 -->
+        <div class="flex-1 flex flex-col space-y-6 lg:max-h-[calc(100vh-120px)] overflow-y-auto pr-1">
+            
+            <!-- 搜尋輸入框 -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                <form id="searchForm" onsubmit="handleSearch(event)" class="relative flex items-center">
+                    <span class="absolute left-4 text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                    </span>
+                    <input type="text" id="wordInput" required
+                           class="w-full pl-12 pr-32 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-lg font-medium tracking-wide transition-all placeholder:text-slate-400"
+                           placeholder="輸入英文單字，例如：serendipity, resilient...">
+                    <button type="submit" 
+                            class="absolute right-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm shadow-md shadow-indigo-100 transition flex items-center space-x-1">
+                        <span>查詢</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </form>
+                
+                <!-- 快捷推薦單字 -->
+                <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <span class="font-medium"><i class="fa-solid fa-fire text-amber-500 mr-1"></i>熱門探索:</span>
+                    <button onclick="quickSearch('serendipity')" class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-md transition">serendipity</button>
+                    <button onclick="quickSearch('resilient')" class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-md transition">resilient</button>
+                    <button onclick="quickSearch('ephemeral')" class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-md transition">ephemeral</button>
+                    <button onclick="quickSearch('altruism')" class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-md transition">altruism</button>
+                </div>
+            </div>
+
+            <!-- 字典卡片內容展示 -->
+            <div id="dictionaryResult" class="hidden flex-1 space-y-6">
+                <!-- 單字基礎頭部卡片 -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-10 -mt-10 -z-10 blur-2xl opacity-60"></div>
+                    
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center space-x-3 flex-wrap">
+                                <h2 id="displayWord" class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">Word</h2>
+                                <div class="flex items-center space-x-2">
+                                    <span id="displayTranslation" class="text-xl md:text-2xl text-indigo-600 font-bold">中文翻譯</span>
+                                    <span id="instantBadge" class="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] px-2 py-0.5 rounded-md font-medium flex items-center space-x-1">
+                                        <i class="fa-solid fa-bolt text-[9px] animate-pulse"></i>
+                                        <span>Google 翻譯</span>
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- 發音排版與語速控制 -->
+                            <div class="flex flex-wrap items-center gap-3 mt-3">
+                                <!-- 美式發音 -->
+                                <button onclick="speak('us')" class="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 rounded-full transition text-xs font-semibold text-slate-600">
+                                    <i class="fa-solid fa-volume-high text-indigo-500"></i>
+                                    <span>美音</span>
+                                    <span id="usPhonetic" class="text-slate-400 font-normal">/loading/</span>
+                                </button>
+                                <!-- 英式發音 -->
+                                <button onclick="speak('uk')" class="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 rounded-full transition text-xs font-semibold text-slate-600">
+                                    <i class="fa-solid fa-volume-high text-violet-500"></i>
+                                    <span>英音</span>
+                                    <span id="ukPhonetic" class="text-slate-400 font-normal">/loading/</span>
+                                </button>
+                                
+                                <!-- 語速調整滑桿 (調整範圍：1.0x - 0.4x) -->
+                                <div class="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 rounded-full text-xs font-semibold text-slate-600 border border-slate-200" title="語速調整限制在 0.4x 到 1.0x 正常速度">
+                                    <i class="fa-solid fa-gauge-high text-indigo-500"></i>
+                                    <span>語速:</span>
+                                    <input type="range" id="speedSlider" min="0.4" max="1.0" step="0.1" value="1.0" 
+                                           class="w-16 md:w-20 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                           oninput="updateSpeedLabel(this.value)">
+                                    <span id="speedLabel" class="text-slate-500 min-w-[28px] text-right">1.0x</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 加入生字本按鈕 -->
+                        <div class="flex items-center space-x-2">
+                            <button id="favoriteBtn" onclick="toggleFavorite()" class="p-2.5 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 transition text-slate-400" title="加入生字本">
+                                <i class="fa-solid fa-heart text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 詳細釋義卡片 -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+                    <h3 class="text-sm font-bold text-slate-400 tracking-wider uppercase flex items-center justify-between">
+                        <span class="flex items-center">
+                            <i class="fa-solid fa-align-left text-indigo-500 mr-2"></i>詳細釋義與詞性
+                        </span>
+                        <span id="aiStatusPos" class="text-xs text-indigo-500 font-medium hidden flex items-center space-x-1.5">
+                            <i class="fa-solid fa-circle-notch animate-spin text-[10px]"></i>
+                            <span>AI 正在分析進階釋義...</span>
+                        </span>
+                    </h3>
+                    <div id="definitionsContainer" class="space-y-4 divide-y divide-slate-100">
+                        <!-- 動態填充定義 -->
+                    </div>
+                </div>
+
+                <!-- 記憶法與詞源探討 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 聯想記憶 -->
+                    <div class="bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-100 rounded-2xl p-5 shadow-sm space-y-2.5">
+                        <h4 class="text-amber-800 font-bold flex items-center text-sm justify-between">
+                            <span class="flex items-center">
+                                <i class="fa-solid fa-lightbulb text-amber-500 mr-2 animate-bounce"></i>記憶聯想 (Mnemonics)
+                            </span>
+                            <span id="aiStatusMnemonic" class="text-[10px] text-amber-600 font-medium flex items-center space-x-1 animate-pulse">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                <span>AI 聯想中...</span>
+                            </span>
+                        </h4>
+                        <p id="mnemonicText" class="text-slate-600 text-sm leading-relaxed italic">正在規劃趣味聯想記憶記憶點...</p>
+                    </div>
+
+                    <!-- 詞源分析 -->
+                    <div class="bg-gradient-to-br from-indigo-50/50 to-sky-50/30 border border-indigo-100 rounded-2xl p-5 shadow-sm space-y-2.5">
+                        <h4 class="text-indigo-900 font-bold flex items-center text-sm justify-between">
+                            <span class="flex items-center">
+                                <i class="fa-solid fa-seedling text-indigo-500 mr-2"></i>詞源字根 (Etymology)
+                            </span>
+                            <span id="aiStatusEtymology" class="text-[10px] text-indigo-600 font-medium flex items-center space-x-1 animate-pulse">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                                <span>AI 溯源中...</span>
+                            </span>
+                        </h4>
+                        <p id="etymologyText" class="text-slate-600 text-sm leading-relaxed italic">正在探索古字來源與字根歷史...</p>
+                    </div>
+                </div>
+
+                <!-- 情境造句 -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+                    <h3 class="text-sm font-bold text-slate-400 tracking-wider uppercase flex items-center justify-between">
+                        <span class="flex items-center">
+                            <i class="fa-solid fa-feather-pointed text-indigo-500 mr-2"></i>實用情境造句 (Context Sentences)
+                        </span>
+                        <span id="aiStatusExamples" class="text-xs text-indigo-500 font-medium hidden flex items-center space-x-1.5">
+                            <i class="fa-solid fa-spinner animate-spin text-[10px]"></i>
+                            <span>AI 正在編寫客製化情境造句...</span>
+                        </span>
+                    </h3>
+                    <div id="examplesContainer" class="space-y-4">
+                        <!-- 動態填充例句 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 初次引導與空狀態 -->
+            <div id="welcomePlaceholder" class="flex-1 flex flex-col items-center justify-center py-12 px-4 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-3xl mb-4 animate-pulse">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-1">開啟您的 AI 語言學習旅程</h3>
+                <p class="text-slate-500 text-sm max-w-sm mb-6">
+                    在上方輸入任何英文單字，網頁會在一瞬間為您呈現 Google 中文翻譯，並異步加載音標、情境例句與趣味記憶聯想！
+                </p>
+                <div class="grid grid-cols-2 gap-3 max-w-md w-full">
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left">
+                        <div class="font-bold text-indigo-600 text-xs mb-1">📚 零延遲 Google 翻譯</div>
+                        <p class="text-xs text-slate-400">全新整合 Google 官方輕量級 API，0.1秒瞬間產出英漢翻譯。</p>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left">
+                        <div class="font-bold text-indigo-600 text-xs mb-1">💬 即時智慧伴讀</div>
+                        <p class="text-xs text-slate-400">右側隨堂對話系統，隨時針對單字進行深度學習。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 載入中骨架骨架 (Skeleton Loader) - 用於初次載入框架 -->
+            <div id="loadingSkeleton" class="hidden flex-1 space-y-6 animate-pulse">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 space-y-4">
+                    <div class="h-8 bg-slate-200 rounded w-1/3"></div>
+                    <div class="flex space-x-2">
+                        <div class="h-6 bg-slate-200 rounded-full w-24"></div>
+                        <div class="h-6 bg-slate-200 rounded-full w-24"></div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 space-y-4">
+                    <div class="h-4 bg-slate-200 rounded w-1/4"></div>
+                    <div class="space-y-2">
+                        <div class="h-3 bg-slate-200 rounded w-full"></div>
+                        <div class="h-3 bg-slate-200 rounded w-5/6"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 右側：AI 即時對話視窗 -->
+        <div class="w-full lg:w-[420px] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm lg:h-[calc(100vh-120px)] h-[480px]">
+            <!-- 對話頂部欄 -->
+            <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-ping"></div>
+                    <div>
+                        <h3 class="font-bold text-sm text-slate-800">Gemini 智能語文導師</h3>
+                        <p id="chatContextStatus" class="text-[10px] text-slate-400">目前為一般提問模式</p>
+                    </div>
+                </div>
+                <button onclick="clearChat()" class="text-xs text-slate-400 hover:text-rose-500 transition px-2 py-1 rounded-md hover:bg-slate-100">
+                    <i class="fa-solid fa-trash-can mr-1"></i>清空
+                </button>
+            </div>
+
+            <!-- 歷史訊息展示區 -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
+                <!-- AI 歡迎語 -->
+                <div class="flex space-x-3 items-start">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div class="bg-slate-100 rounded-2xl rounded-tl-none px-3.5 py-2.5 max-w-[85%] text-slate-700 leading-relaxed shadow-sm">
+                        你好！我是你的 AI 英語導師。輸入左側單字後，我會自動獲取上下文！
+                        <div class="mt-2 text-xs text-slate-400">你也可以直接在這裡問我任何英文相關問題（如文法、修辭、多益準備等）✨</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 輸入發送欄 -->
+            <div class="p-3 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
+                <form id="chatForm" onsubmit="handleSendMessage(event)" class="flex items-center space-x-2">
+                    <input type="text" id="chatInput" required
+                           class="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                           placeholder="向 AI 導師提問單字文法、用例...">
+                    <button type="submit" id="chatSubmitBtn"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl shadow-md shadow-indigo-100 transition flex items-center justify-center w-10 h-10 flex-shrink-0">
+                        <i class="fa-solid fa-paper-plane text-sm"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 📚 側邊生字本抽屜 (Slide-out Drawer) -->
+    <div id="vocabDrawer" class="fixed inset-y-0 right-0 w-80 bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out border-l border-slate-200 flex flex-col">
+        <!-- Drawer 頂部 -->
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div class="flex items-center space-x-2 text-slate-800">
+                <i class="fa-solid fa-book-bookmark text-rose-500"></i>
+                <span class="font-bold text-sm">我的持久生字本</span>
+            </div>
+            <button onclick="toggleVocabDrawer()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <!-- 搜尋生字 -->
+        <div class="p-3 border-b border-slate-100 bg-white">
+            <div class="relative flex items-center">
+                <span class="absolute left-3 text-slate-400 text-xs">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="vocabSearch" oninput="renderVocabList()" placeholder="在收藏中搜尋單字..." 
+                       class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+            </div>
+        </div>
+        <!-- 列表容器 -->
+        <div id="vocabListContainer" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50">
+            <!-- 動態產生生字卡 -->
+        </div>
+    </div>
+    <!-- 抽屜背景遮罩 (Backdrop) -->
+    <div id="vocabDrawerBackdrop" onclick="toggleVocabDrawer()" class="hidden fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-45 transition-opacity"></div>
+
+    <!-- 設定彈窗 -->
+    <div id="configModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 flex items-center"><i class="fa-solid fa-cog mr-2 text-indigo-500"></i>設定</h3>
+                <button onclick="closeConfigModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <div class="space-y-3">
+                <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 leading-relaxed">
+                    API Key 已改由後端環境變數 <code class="font-semibold">GEMINI_API_KEY</code> 提供，不會出現在瀏覽器或 GitHub 前端檔案中。
+                </div>
+                <!-- Model Selector -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-slate-500">選擇 AI 模型</label>
+                    <select id="modelSelect" class="w-full px-3 py-2 text-sm bg-slate-100 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                        <option value="gemini-2.5-flash" selected>gemini-2.5-flash (推薦：高響應與高穩定性)</option>
+                        <option value="gemini-1.5-flash">gemini-1.5-flash (相容性最佳)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button onclick="saveModalConfig()" class="w-full py-2 bg-indigo-600 text-white font-semibold text-sm rounded-lg hover:bg-indigo-700 transition">
+                儲存設定
+            </button>
+        </div>
+    </div>
+
+    <!-- 音頻隱藏載入容器 -->
+    <div id="audioContainer" class="hidden"></div>
+
+    <script>
+        // 核心狀態管理
+        let currentWord = '';
+        let currentTranslation = '';
+        let lastQueryData = null;
+        let chatHistory = [];
+        
+        // 📚 生字本 LocalStorage 初始化與快取存取
+        let favorites = JSON.parse(localStorage.getItem('lexichat_favorites')) || [];
+        
+        // 頁面加載完成後更新生字本標章
+        window.addEventListener('DOMContentLoaded', () => {
+            updateVocabBadge();
+        });
+        // 彈窗操作
+        function openConfigModal() {
+            document.getElementById('configModal').classList.remove('hidden');
+        }
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.add('hidden');
+        }
+        function saveModalConfig() {
+            closeConfigModal();
+            showCustomToast('設定已儲存', 'success');
+        }
+
+        // 📚 側邊抽屜生字本控制器
+        function toggleVocabDrawer() {
+            const drawer = document.getElementById('vocabDrawer');
+            const backdrop = document.getElementById('vocabDrawerBackdrop');
+            if (drawer.classList.contains('translate-x-full')) {
+                drawer.classList.remove('translate-x-full');
+                backdrop.classList.remove('hidden');
+                renderVocabList();
+            } else {
+                drawer.classList.add('translate-x-full');
+                backdrop.classList.add('hidden');
+            }
+        }
+
+        // 儲存並同步生字本到 LocalStorage
+        function saveFavorites() {
+            localStorage.setItem('lexichat_favorites', JSON.stringify(favorites));
+            updateVocabBadge();
+            renderVocabList();
+        }
+
+        // 更新導航生字本數量標章
+        function updateVocabBadge() {
+            const badge = document.getElementById('vocabCountBadge');
+            if (badge) {
+                badge.innerText = favorites.length;
+            }
+        }
+
+        // 新增 / 刪除生字本主要邏輯
+        function toggleFavorite() {
+            if (!currentWord) return;
+            const index = favorites.findIndex(item => item.word.toLowerCase() === currentWord.toLowerCase());
+            const btn = document.getElementById('favoriteBtn');
+            
+            if (index === -1) {
+                // 尚未收藏，加入生字本
+                const newItem = {
+                    word: currentWord,
+                    translation: currentTranslation,
+                    usPhonetic: lastQueryData ? lastQueryData.usPhonetic : '',
+                    ukPhonetic: lastQueryData ? lastQueryData.ukPhonetic : '',
+                    date: new Date().toISOString()
+                };
+                favorites.push(newItem);
+                showCustomToast(`已將「${currentWord}」加入生字本並持久儲存！`, 'success');
+                btn.className = 'p-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition';
+                btn.innerHTML = `<i class="fa-solid fa-heart text-lg text-rose-500"></i>`;
+            } else {
+                // 已收藏，移除生字本
+                favorites.splice(index, 1);
+                showCustomToast('已從生字本移出。', 'info');
+                btn.className = 'p-2.5 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 transition text-slate-400';
+                btn.innerHTML = `<i class="fa-regular fa-heart text-lg"></i>`;
+            }
+            saveFavorites();
+        }
+
+        // 重新同步並更新愛心按鈕外觀
+        function updateFavoriteButtonState() {
+            if (!currentWord) return;
+            const btn = document.getElementById('favoriteBtn');
+            if (!btn) return;
+            const isFav = favorites.some(item => item.word.toLowerCase() === currentWord.toLowerCase());
+            if (isFav) {
+                btn.className = 'p-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition';
+                btn.innerHTML = `<i class="fa-solid fa-heart text-lg text-rose-500"></i>`;
+            } else {
+                btn.className = 'p-2.5 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 transition text-slate-400';
+                btn.innerHTML = `<i class="fa-regular fa-heart text-lg"></i>`;
+            }
+        }
+
+        // 渲染側邊欄生字列表
+        function renderVocabList() {
+            const searchVal = document.getElementById('vocabSearch').value.toLowerCase().trim();
+            const container = document.getElementById('vocabListContainer');
+            container.innerHTML = '';
+            
+            const filtered = favorites.filter(item => 
+                item.word.toLowerCase().includes(searchVal) || 
+                item.translation.toLowerCase().includes(searchVal)
+            );
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 text-xs flex flex-col items-center justify-center space-y-2 bg-white rounded-xl border border-dashed border-slate-200">
+                        <i class="fa-regular fa-folder-open text-3xl text-slate-300"></i>
+                        <span>${searchVal ? '找不到相符的單字' : '生字本空空如也'}</span>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 排序：最新加入的排在前面
+            const sortedList = [...filtered].reverse();
+
+            sortedList.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'p-3.5 bg-white hover:bg-indigo-50/50 border border-slate-100 rounded-xl flex items-center justify-between group transition cursor-pointer shadow-xs';
+                div.onclick = (e) => {
+                    if (e.target.closest('button')) return; 
+                    loadVocabWord(item.word);
+                };
+                
+                div.innerHTML = `
+                    <div class="flex-1 min-w-0 mr-2">
+                        <p class="font-extrabold text-sm text-slate-800 truncate">${item.word}</p>
+                        <p class="text-xs text-indigo-600 font-medium truncate mt-0.5">${item.translation}</p>
+                    </div>
+                    <div class="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition">
+                        <button onclick="speakWordInList(event, '${item.word}')" class="p-1.5 hover:text-indigo-600 hover:bg-white text-slate-400 rounded-lg transition" title="播放發音">
+                            <i class="fa-solid fa-volume-high text-xs"></i>
+                        </button>
+                        <button onclick="deleteFromVocabList(event, '${item.word}')" class="p-1.5 hover:text-rose-600 hover:bg-white text-slate-400 rounded-lg transition" title="移出生字本">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 生字本喇叭播放
+        function speakWordInList(event, word) {
+            event.stopPropagation();
+            const synth = window.speechSynthesis;
+            if (synth.speaking) synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(word);
+            
+            // 使用目前主設定滑桿的語速
+            const speedSlider = document.getElementById('speedSlider');
+            utterance.rate = speedSlider ? parseFloat(speedSlider.value) : 1.0;
+            
+            const voices = synth.getVoices();
+            const voice = voices.find(v => v.lang.includes('en-US')) || voices.find(v => v.lang.includes('en'));
+            if (voice) utterance.voice = voice;
+            synth.speak(utterance);
+        }
+
+        // 從生字本列表單一刪除
+        function deleteFromVocabList(event, word) {
+            event.stopPropagation();
+            const index = favorites.findIndex(item => item.word.toLowerCase() === word.toLowerCase());
+            if (index !== -1) {
+                favorites.splice(index, 1);
+                saveFavorites();
+                updateFavoriteButtonState();
+                showCustomToast(`已刪除「${word}」`, 'info');
+            }
+        }
+
+        // 點擊生字卡，加載字典查詢
+        function loadVocabWord(word) {
+            document.getElementById('wordInput').value = word;
+            handleSearch(new Event('submit'));
+            toggleVocabDrawer(); 
+        }
+
+        // 快捷查詢推薦詞
+        function quickSearch(word) {
+            document.getElementById('wordInput').value = word;
+            handleSearch(new Event('submit'));
+        }
+
+        // 毫秒級 Google Translate 免費查詢函數
+        async function fetchInstantGoogleTranslation(word) {
+            try {
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-TW&dt=t&q=${encodeURIComponent(word)}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("Translation request failed");
+                const data = await res.json();
+                return data[0][0][0]; // 提取譯文首項
+            } catch (e) {
+                console.error("Google 翻譯瞬時加載失敗:", e);
+                return null;
+            }
+        }
+
+        // 主動查詢單字處理
+        async function handleSearch(event) {
+            if (event) event.preventDefault();
+            const word = document.getElementById('wordInput').value.trim();
+            if (!word) return;
+
+            currentWord = word;
+            
+            // 1. 初始化歡迎區與骨架
+            toggleStates('loading');
+
+            // 2. 【核心升級】瞬間拉取 Google 翻譯並展現基礎卡片（完全零延遲）
+            let googleTrans = await fetchInstantGoogleTranslation(word);
+            if (!googleTrans) {
+                googleTrans = "查詢中...";
+            }
+
+            // 立即顯示字首卡片與快速翻譯
+            currentTranslation = googleTrans;
+            document.getElementById('displayWord').innerText = word;
+            document.getElementById('displayTranslation').innerText = googleTrans;
+            document.getElementById('instantBadge').classList.remove('hidden');
+            
+            // 初始化發音與副卡片骨架
+            document.getElementById('usPhonetic').innerHTML = `<i class="fa-solid fa-volume-high text-indigo-500"></i> <span>美音</span> <span class="text-slate-400 font-normal">/讀取中/</span>`;
+            document.getElementById('ukPhonetic').innerHTML = `<i class="fa-solid fa-volume-high text-violet-500"></i> <span>英音</span> <span class="text-slate-400 font-normal">/讀取中/</span>`;
+            
+            // 填充 AI 載入佔位符
+            document.getElementById('definitionsContainer').innerHTML = `
+                <div class="py-4 text-slate-400 text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-notch animate-spin text-indigo-500"></i>
+                    <span>AI 正在分析詳細詞性與進階漢語釋義...</span>
+                </div>
+            `;
+            document.getElementById('mnemonicText').innerHTML = `AI 正在為您量身打造趣味記憶聯想...`;
+            document.getElementById('etymologyText').innerHTML = `正在溯源古英語與拉丁字根字首來源...`;
+            document.getElementById('examplesContainer').innerHTML = `
+                <div class="py-3 text-slate-400 text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-notch animate-spin text-indigo-500"></i>
+                    <span>AI 正在撰寫實用情境造句...</span>
+                </div>
+            `;
+            
+            // 啟用進度狀態
+            document.getElementById('aiStatusPos').classList.remove('hidden');
+            document.getElementById('aiStatusMnemonic').classList.remove('hidden');
+            document.getElementById('aiStatusEtymology').classList.remove('hidden');
+            document.getElementById('aiStatusExamples').classList.remove('hidden');
+            
+            // 立刻顯示字典介面 (此時 AI 進階內容仍在背景處理)
+            toggleStates('result');
+            updateFavoriteButtonState();
+
+            // 3. 背景執行 Gemini 深度語義 JSON 解析
+            const systemPrompt = `
+                你是一個專業的英文雙語字典。請回傳完全符合以下 JSON 結構的資訊，不得含有額外 markdown 包裝或一般對話。
+                JSON 規格：
+                {
+                    "word": "英文單字",
+                    "translation": "主要中文翻譯 (繁體中文)",
+                    "usPhonetic": "美式音標，例如 [rɪˈzɪliənt]",
+                    "ukPhonetic": "英式音標，例如 [rɪˈzɪliənt]",
+                    "definitions": [
+                        {
+                            "partOfSpeech": "詞性代號，例如 n., v., adj., adv.",
+                            "definition": "英文詳細解釋",
+                            "translation": "繁體中文詳細解釋"
+                        }
+                    ],
+                    "examples": [
+                        {
+                            "english": "完整的情境例句",
+                            "chinese": "對應的優美繁體中文翻譯"
+                        }
+                    ],
+                    "etymology": "簡明生動的字根字首、古字來源或演變歷史 (繁體中文)",
+                    "mnemonic": "好記、有趣的聯想記憶法，如諧音或圖像法 (繁體中文)"
+                }
+            `;
+
+            const prompt = `請詳細解析單字: "${word}"`;
+
+            try {
+                const resultText = await callGeminiAPI(prompt, systemPrompt, true);
+                const data = JSON.parse(resultText);
+                lastQueryData = data;
+                
+                // 4. 當 AI 完成加載，將詳細數據優雅融入
+                renderDictionaryCard(data);
+                
+                // 更新右側對話上下文
+                updateChatContext(word, data.translation);
+                
+                // 隨堂提問引導
+                clearChat(true);
+                addMessage('model', `我已經為您準備好了「**${word}**」的學習環境！您可以問我這個字的：\n1. 在商務、學術或日常口說時有哪些常見搭配詞 (collocations)？\n2. 請幫我用這個字造一個多益 (TOEIC) 常見例句。\n3. 與它相似的同義字有哪些？微妙差異在哪裡？`);
+
+            } catch (error) {
+                console.error("Gemini AI 解析失敗:", error);
+                // AI 失敗時保留基礎 Google 翻譯與基本界面，僅提示 AI 功能載入異常
+                showCustomToast(`AI 深度解析失敗（已為您保留基本 Google 翻譯）：${error.message}`, 'error');
+                
+                // 移除進度條，將 AI 卡片改為重試提示
+                document.getElementById('aiStatusPos').classList.add('hidden');
+                document.getElementById('aiStatusMnemonic').classList.add('hidden');
+                document.getElementById('aiStatusEtymology').classList.add('hidden');
+                document.getElementById('aiStatusExamples').classList.add('hidden');
+                
+                document.getElementById('definitionsContainer').innerHTML = `<p class="text-slate-400 text-xs py-2">無進階 AI 釋義。僅提供上方快速翻譯。</p>`;
+                document.getElementById('mnemonicText').innerHTML = `暫無聯想推薦。`;
+                document.getElementById('etymologyText').innerHTML = `暫無字根字首說明。`;
+                document.getElementById('examplesContainer').innerHTML = `<p class="text-slate-400 text-xs py-2">無 AI 例句推薦。</p>`;
+            }
+        }
+
+        // 渲染字典卡片介面
+        function renderDictionaryCard(data) {
+            document.getElementById('displayWord').innerText = data.word;
+            document.getElementById('displayTranslation').innerText = data.translation;
+            currentTranslation = data.translation;
+            
+            // 當 AI 加載完成，關閉 Google 快速翻譯標章或保持它
+            document.getElementById('instantBadge').classList.add('hidden');
+            
+            document.getElementById('usPhonetic').innerHTML = `<i class="fa-solid fa-volume-high text-indigo-500"></i> <span>美音</span> <span class="text-slate-400 font-normal">${data.usPhonetic || ''}</span>`;
+            document.getElementById('ukPhonetic').innerHTML = `<i class="fa-solid fa-volume-high text-violet-500"></i> <span>英音</span> <span class="text-slate-400 font-normal">${data.ukPhonetic || ''}</span>`;
+
+            // 關閉 AI 狀態提示
+            document.getElementById('aiStatusPos').classList.add('hidden');
+            document.getElementById('aiStatusMnemonic').classList.add('hidden');
+            document.getElementById('aiStatusEtymology').classList.add('hidden');
+            document.getElementById('aiStatusExamples').classList.add('hidden');
+
+            // 定義列表
+            const defContainer = document.getElementById('definitionsContainer');
+            defContainer.innerHTML = '';
+            data.definitions.forEach(def => {
+                const item = document.createElement('div');
+                item.className = 'py-3 first:pt-0 last:pb-0';
+                item.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <span class="inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded mt-1">${def.partOfSpeech}</span>
+                        <div class="flex-1">
+                            <p class="font-semibold text-slate-800 text-base">${def.translation}</p>
+                            <p class="text-sm text-slate-500 mt-1">${def.definition}</p>
+                        </div>
+                    </div>
+                `;
+                defContainer.appendChild(item);
+            });
+
+            // 記憶聯想與字根
+            document.getElementById('mnemonicText').innerText = data.mnemonic || '無特殊聯想推薦。';
+            document.getElementById('etymologyText').innerText = data.etymology || '無字根說明。';
+
+            // 例句列表
+            const exContainer = document.getElementById('examplesContainer');
+            exContainer.innerHTML = '';
+            data.examples.forEach(ex => {
+                const item = document.createElement('div');
+                item.className = 'p-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 rounded-xl transition space-y-1 group';
+                item.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <p class="font-medium text-slate-800 text-sm md:text-base leading-relaxed">${highlightWord(ex.english, data.word)}</p>
+                        <button onclick="speakText('${ex.english.replace(/'/g, "\\'")}')" class="text-slate-400 hover:text-indigo-600 transition p-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100">
+                            <i class="fa-solid fa-volume-low"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs md:text-sm text-slate-500">${ex.chinese}</p>
+                `;
+                exContainer.appendChild(item);
+            });
+
+            // 更新愛心儲存狀態
+            updateFavoriteButtonState();
+        }
+
+        // 單字高亮
+        function highlightWord(text, word) {
+            const regex = new RegExp(`\\b(${word}\\w*)\\b`, 'gi');
+            return text.replace(regex, `<span class="text-indigo-600 font-bold underline decoration-2 decoration-indigo-200">$1</span>`);
+        }
+
+        // 即時更新語速標籤顯示
+        function updateSpeedLabel(val) {
+            const label = document.getElementById('speedLabel');
+            if (label) {
+                label.innerText = parseFloat(val).toFixed(1) + 'x';
+            }
+        }
+
+        // 美式/英式發音系統
+        function speak(accent) {
+            if (!currentWord) return;
+            const synth = window.speechSynthesis;
+            if (synth.speaking) synth.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(currentWord);
+            const voices = synth.getVoices();
+
+            // 讀取目前設定的語速 (限制在 0.4 到 1.0)
+            const speedSlider = document.getElementById('speedSlider');
+            const speed = speedSlider ? parseFloat(speedSlider.value) : 1.0;
+            utterance.rate = speed;
+
+            // 嘗試尋找合適的英/美語音
+            let selectedVoice = null;
+            if (accent === 'us') {
+                selectedVoice = voices.find(v => v.lang.includes('en-US')) || voices.find(v => v.lang.includes('en'));
+                utterance.pitch = 1.0;
+            } else {
+                selectedVoice = voices.find(v => v.lang.includes('en-GB')) || voices.find(v => v.lang.includes('en-IE')) || voices.find(v => v.lang.includes('en'));
+                utterance.pitch = 0.95;
+            }
+
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            synth.speak(utterance);
+        }
+
+        // 發音整句
+        function speakText(text) {
+            const synth = window.speechSynthesis;
+            if (synth.speaking) synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // 讀取目前設定的語速 (限制在 0.4 到 1.0)
+            const speedSlider = document.getElementById('speedSlider');
+            const speed = speedSlider ? parseFloat(speedSlider.value) : 1.0;
+            utterance.rate = speed;
+
+            const voices = synth.getVoices();
+            const voice = voices.find(v => v.lang.includes('en-US')) || voices.find(v => v.lang.includes('en'));
+            if (voice) utterance.voice = voice;
+            synth.speak(utterance);
+        }
+
+        // 確保 Web Speech API 音色準備就緒
+        if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => {};
+        }
+
+        // 介面切換狀態控管
+        function toggleStates(state) {
+            const welcome = document.getElementById('welcomePlaceholder');
+            const loading = document.getElementById('loadingSkeleton');
+            const result = document.getElementById('dictionaryResult');
+
+            welcome.classList.add('hidden');
+            loading.classList.add('hidden');
+            result.classList.add('hidden');
+
+            if (state === 'welcome') welcome.classList.remove('hidden');
+            if (state === 'loading') loading.classList.remove('hidden');
+            if (state === 'result') result.classList.remove('hidden');
+        }
+
+        // 右側對話
+        async function handleSendMessage(event) {
+            event.preventDefault();
+            const inputEl = document.getElementById('chatInput');
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            addMessage('user', text);
+            inputEl.value = '';
+
+            const submitBtn = document.getElementById('chatSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i>`;
+
+            let contextPrompt = "你是一位親切活潑、具有豐富教學經驗的英語老師。";
+            if (currentWord) {
+                contextPrompt += `現在學生剛剛查詢了單字「${currentWord} (${currentTranslation})」。請盡量圍繞此單字延伸、解答，並主動設計引導。`;
+            }
+
+            try {
+                chatHistory.push({ role: 'user', text: text });
+                const recentHistory = chatHistory.slice(-8); 
+                const chatPrompt = recentHistory.map(h => `${h.role === 'user' ? '學生' : '老師'}: ${h.text}`).join('\n');
+
+                const responseText = await callGeminiAPI(chatPrompt, contextPrompt, false);
+                addMessage('model', responseText);
+                chatHistory.push({ role: 'model', text: responseText });
+            } catch (error) {
+                console.error(error);
+                addMessage('model', `⚠️ 抱歉，我暫時沒辦法回應您的問題。錯誤資訊：${error.message}`);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane text-sm"></i>`;
+            }
+        }
+
+        // 增加聊天訊息到 UI
+        function addMessage(role, text) {
+            const container = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex space-x-3 items-start ${role === 'user' ? 'justify-end' : ''}`;
+
+            const formattedText = parseMarkdown(text);
+
+            if (role === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="bg-indigo-600 text-white rounded-2xl rounded-tr-none px-3.5 py-2.5 max-w-[85%] shadow-sm leading-relaxed">
+                        ${formattedText}
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div class="bg-slate-100 rounded-2xl rounded-tl-none px-3.5 py-2.5 max-w-[85%] text-slate-700 leading-relaxed shadow-sm">
+                        ${formattedText}
+                    </div>
+                `;
+            }
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 更新導師視窗狀態欄
+        function updateChatContext(word, trans) {
+            const status = document.getElementById('chatContextStatus');
+            status.innerHTML = `<span class="text-indigo-600 font-bold"><i class="fa-solid fa-graduation-cap"></i> 隨堂：${word} (${trans})</span>`;
+        }
+
+        // 清空對話
+        function clearChat(keepState = false) {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+            chatHistory = [];
+            if (!keepState) {
+                currentWord = '';
+                currentTranslation = '';
+                document.getElementById('chatContextStatus').innerText = '目前為一般提問模式';
+                addMessage('model', '你好！我是您的 AI 英語伴讀。我們可以暢聊任何有關英文學習的問題！✨');
+            }
+        }
+
+        // 簡單解析 markdown
+        function parseMarkdown(text) {
+            let html = text.replace(/\*\*(.*?)\*\"/g, '<strong>$1</strong>');
+            html = html.replace(/\*\*(.*?)\*\"/g, '<strong>$1</strong>');
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\n/g, '<br>');
+            html = html.replace(/^\s*-\s*(.*?)$/gm, '• $1');
+            return html;
+        }
+
+        // 通用 API 調用函式：改由部署平台的 /api/chat 後端代理呼叫 Gemini，避免 API Key 暴露在前端
+        async function callGeminiAPI(userQuery, systemPrompt = '', isJson = false) {
+            const selectedModel = document.getElementById('modelSelect').value || 'gemini-2.5-flash';
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: userQuery,
+                    systemPrompt,
+                    isJson,
+                    model: selectedModel
+                })
+            });
+
+            let result = null;
+            try {
+                result = await response.json();
+            } catch (error) {
+                throw new Error('後端回傳格式錯誤');
+            }
+
+            if (!response.ok || result.error) {
+                const message = typeof result.error === 'object' ? JSON.stringify(result.error) : result.error;
+                throw new Error(message || `HTTP ${response.status}`);
+            }
+
+            const text = result.text || result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) return text;
+            throw new Error('未獲得預期文本回傳');
+        }
+        // 自訂烤吐司
+        function showCustomToast(message, type = 'info') {
+            const existingToast = document.getElementById('customToast');
+            if (existingToast) existingToast.remove();
+
+            const colors = {
+                success: 'bg-emerald-600',
+                error: 'bg-rose-600',
+                info: 'bg-indigo-600'
+            };
+
+            const icons = {
+                success: 'fa-circle-check',
+                error: 'fa-triangle-exclamation',
+                info: 'fa-circle-info'
+            };
+
+            const toast = document.createElement('div');
+            toast.id = 'customToast';
+            toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 ${colors[type]} text-white px-5 py-3 rounded-xl shadow-lg flex items-center space-x-2.5 z-[100] transition-all duration-300 transform translate-y-4 opacity-0 text-sm font-semibold max-w-md text-center`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icons[type]} text-base flex-shrink-0"></i>
+                <span class="break-all">${message}</span>
+            `;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+            }, 10);
+
+            const duration = type === 'error' ? 7000 : 3000;
+            setTimeout(() => {
+                if (toast) {
+                    toast.classList.add('translate-y-4', 'opacity-0');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, duration);
+        }
+    </script>
+</body>
+</html>

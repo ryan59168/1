@@ -3,132 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英文學習入口</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230070f3'%3E%3Cpath d='M12 11.55C9.64 9.35 6.48 8 3 8v11c3.48 0 6.64 1.35 9 3.55 2.36-2.2 5.52-3.55 9-3.55V8c-3.48 0-6.64 1.35-9 3.55zM12 8c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3z'/%3E%3C/svg%3E">
+    <title>英文學習入口 Portal</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'%3E%3Cpath d='M12 11.55C9.64 9.35 6.48 8 3 8v11c3.48 0 6.64 1.35 9 3.55 2.36-2.2 5.52-3.55 9-3.55V8c-3.48 0-6.64 1.35-9 3.55zM12 8c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3z'/%3E%3C/svg%3E">
+    <!-- 引入 Tailwind CSS 提升排版彈性 -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 網頁基本樣式設定 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #fafafa;
-            color: #333333;
-            margin: 0;
-            padding: 40px 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            font-family: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: radial-gradient(circle at top, #f0f4ff 0%, #fafafa 100%);
+            min-height: 100vh;
         }
 
-        h1 {
-            margin-bottom: 30px;
-            font-size: 2.2rem;
-            color: #111;
+        /* 漸變發光卡片效果 */
+        .tool-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 按鈕排列網格 */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 800px;
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.1), 0 10px 10px -5px rgba(37, 99, 235, 0.04);
         }
 
-        /* 統一的按鈕樣式 */
-        .btn-link {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background-color: #ffffff;
-            color: #333333;
-            text-decoration: none;
-            border-radius: 8px;
-            border: 1px solid #eaeaea;
-            font-size: 1.1rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            text-align: center;
-        }
-
-        /* 圖示樣式設定 */
-        .btn-link svg {
-            margin-right: 8px;
-            flex-shrink: 0;
-        }
-
-        /* 滑鼠移上去時的動畫效果 */
-        .btn-link:hover {
-            border-color: #0070f3;
-            color: #0070f3;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 112, 243, 0.1);
-        }
-
-        /* 手機版自動調整為單欄 */
-        @media (max-width: 600px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
+        /* 裝飾用背景光暈 */
+        .glow-bg {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
+            top: -100px;
+            z-index: -1;
         }
     </style>
 </head>
-<body>
-    
-    <h1>英文學習入口</h1>
-    
-    <div class="grid" id="toolsGrid"></div>
+<body class="relative overflow-x-hidden pb-16">
+
+    <!-- 頂部裝飾光暈 -->
+    <div class="glow-bg left-1/4 -translate-x-1/2"></div>
+    <div class="glow-bg right-1/4 translate-x-1/2"></div>
+
+    <div class="max-w-4xl mx-auto px-4 pt-12 md:pt-20">
+        
+        <!-- 頂部標題區 -->
+        <header class="text-center mb-10">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/30 mb-4 animate-bounce">
+                <!-- 學習主圖示 -->
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 tracking-tight mb-2">英文學習入口</h1>
+        </header>
+
+        <!-- 按鈕網格 (移除原先的搜尋框，直接呈現版面) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="toolsGrid"></div>
+
+    </div>
 
     <script>
         // ==================================================
-        //  【未來新增工具】只要在下方中括號內新增「名稱」與「網址」即可
+        //  【未來新增工具列表】
+        //  在此新增或修改工具，支援精美的內建 SVG 圖示！
         // ==================================================
         const tools = [
-            { name: "單字練習", url: "practice.html" },
-            { name: "AI 單字解析", url: "dictionary.html" },
-            
-            // 如果是外部網站（如 http 或 https 開頭），程式會自動幫您在新分頁開啟
-            { name: "type words", 
-              url: "https://typewords.cc/words",
-              icon: `<svg width="20" height="20" viewBox="0 0 16 16"></svg>`
+            { 
+                name: "單字練習", 
+                desc: "自主進行單字背誦、測驗與複習",
+                url: "practice.html",
+                isLocal: true,
+                icon: `<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                       </svg>`
             },
-            { name: "GITHUB", 
-              url: "https://github.com/ryan59168/1",
-              icon: `<svg width="20" height="20" viewBox="0 0 16 16"></svg>`
+            { 
+                name: "AI 單字解析", 
+                desc: "透過人工智慧深入解析字源、語境與例句",
+                url: "dictionary.html",
+                isLocal: true,
+                icon: `<svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                       </svg>`
             },
-            { name: "GOOGLE SHEETS", 
-              url: "https://docs.google.com/spreadsheets/d/16y8_QTo0QrQe5El9ylVvps94mhNi7zRuErIrxRkwoQc/edit?gid=947735951#gid=947735951",
-              icon: `<svg width="20" height="20" viewBox="0 0 16 16"></svg>`
+            { 
+                name: "Type Words", 
+                desc: "動態英打練習，邊打字邊記憶核心單字",
+                url: "https://typewords.cc/words",
+                isLocal: false,
+                /* 參考 image_69045b.png 高度還原的 SVG 圖示 */
+                icon: `<svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- 藍色圓角背景 -->
+                        <rect width="48" height="48" rx="10" fill="#0070f3"/>
+                        <!-- 內層微透白色邊框 -->
+                        <rect x="4" y="4" width="40" height="40" rx="7" stroke="white" stroke-width="2" stroke-opacity="0.25" fill="none"/>
+                        <!-- 展開的白色書本背景 -->
+                        <path d="M24 13.5c-2.5-3-7-3.5-10.5-3.5H10v22h3.5c3 0 6.5 1 10.5 4 4-3 7.5-4 10.5-4H38V10h-3.5c-3.5 0-8 .5-10.5 3.5z" fill="white" fill-opacity="0.15" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                        <!-- 中央厚實的 T 字按鍵造型 -->
+                        <path d="M18 17.5h12M24 17.5v12" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                       </svg>`
+            },
+            { 
+                name: "GitHub 專案庫", 
+                desc: "本學習系統的原始碼與開發管理倉庫",
+                url: "https://github.com/ryan59168/1",
+                isLocal: false,
+                icon: `<svg class="w-6 h-6 text-gray-800" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                       </svg>`
+            },
+            { 
+                name: "Google Sheets 單字庫", 
+                desc: "儲存、同步與管理您個人單字的雲端試算表",
+                url: "https://docs.google.com/spreadsheets/d/16y8_QTo0QrQe5El9ylVvps94mhNi7zRuErIrxRkwoQc/edit?gid=947735951#gid=947735951",
+                isLocal: false,
+                icon: `<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                       </svg>`
             }
-        
         ];
 
         // ==================================================
-        //  自動產生網頁按鈕的程式碼（請勿修改）
+        //  每日金句資料庫（隨機顯示）
+        // ==================================================
+        const quotes = [
+            { en: "The beautiful thing about learning is nobody can take it away from you.", zh: "學習最美妙的地方在於，沒有人能把它從你身邊奪走。" },
+            { en: "Learning is a treasure that will follow its owner everywhere.", zh: "知識是一座隨身攜帶的寶庫。" },
+            { en: "Believe you can and you're halfway there.", zh: "相信自己做得到，你就已經成功了一半。" },
+            { en: "Don't let what you cannot do interfere with what you can do.", zh: "不要讓你無法做到的事，阻礙了你所能做到的事。" },
+            { en: "Continuous learning is the minimum requirement for success.", zh: "持續不斷地學習，是成功最基本的條件。" }
+        ];
+
+        // 初始化每日金句
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        document.getElementById('quoteEn').textContent = `"${randomQuote.en}"`;
+        document.getElementById('quoteZh').textContent = randomQuote.zh;
+
+        // ==================================================
+        //  自動產生網頁按鈕與渲染程式碼
         // ==================================================
         const grid = document.getElementById('toolsGrid');
-        
-        tools.forEach(tool => {
-            const a = document.createElement('a');
-            a.href = tool.url;
-            a.className = 'btn-link';
-            
-            // 判斷是否有設定圖示，有的話就連同圖示一起渲染
-            if (tool.icon) {
-                a.innerHTML = tool.icon + `<span>${tool.name}</span>`;
-            } else {
-                a.textContent = tool.name;
-            }
-            
-            // 自動判斷：如果是外部網址，就在新分頁開啟
-            if (tool.url.startsWith('http')) {
-                a.target = '_blank';
-                a.rel = 'noopener noreferrer';
-            }
-            
-            grid.appendChild(a);
-        });
-    </script>
 
+        function renderTools() {
+            grid.innerHTML = '';
+            
+            tools.forEach(tool => {
+                const isExternal = tool.url.startsWith('http');
+                
+                // 建立卡片連結元件
+                const card = document.createElement('a');
+                card.href = tool.url;
+                card.className = 'tool-card block bg-white border border-gray-100 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:border-blue-500 hover:shadow-lg flex items-start gap-4 group';
+                
+                if (isExternal) {
+                    card.target = '_blank';
+                    card.rel = 'noopener noreferrer';
+                }
+
+                // 標籤樣式判斷 (本地 vs 外部)
+                const badgeHTML = tool.isLocal 
+                    ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 uppercase">本地工具</span>`
+                    : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600 uppercase">外部連結</span>`;
+
+                // 判斷是否為自訂特殊大圖示 (例如 Type Words)
+                const isSpecialLargeIcon = tool.name === "Type Words";
+                const iconContainerClass = isSpecialLargeIcon 
+                    ? `flex-shrink-0 w-12 h-12 flex items-center justify-center transition-colors`
+                    : `flex-shrink-0 w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100/80 group-hover:bg-blue-50/50 transition-colors`;
+
+                card.innerHTML = `
+                    <!-- 左側圖示外框 -->
+                    <div class="${iconContainerClass}">
+                        ${tool.icon || `
+                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            </svg>
+                        `}
+                    </div>
+                    
+                    <!-- 右側主要內容 -->
+                    <div class="flex-grow">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h2 class="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">${tool.name}</h2>
+                            ${badgeHTML}
+                        </div>
+                        <p class="text-sm text-gray-400 leading-relaxed pr-6">${tool.desc || '暫無描述。'}</p>
+                    </div>
+
+                    <!-- 右下角引導小箭頭 -->
+                    <div class="absolute bottom-6 right-6 text-gray-300 group-hover:text-blue-500 transition-colors">
+                        <svg class="w-5 h-5 transform translate-x-0 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // 首次載入渲染
+        renderTools();
+    </script>
 </body>
 </html>

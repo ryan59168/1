@@ -12,51 +12,52 @@
         
         body {
             font-family: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: radial-gradient(circle at top, #f0f4ff 0%, #fafafa 100%);
+            background: radial-gradient(circle at top, #f3f7ff 0%, #fafafa 100%);
             min-height: 100vh;
         }
 
-        /* 漸變發光卡片效果 */
+        /* 漸變發光卡片效果與滑鼠互動 */
         .tool-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.1), 0 10px 10px -5px rgba(37, 99, 235, 0.04);
+            transform: translateY(-6px);
+            box-shadow: 0 22px 35px -5px rgba(37, 99, 235, 0.12), 0 12px 16px -6px rgba(37, 99, 235, 0.06);
         }
 
         /* 裝飾用背景光暈 */
         .glow-bg {
             position: absolute;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
-            top: -100px;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, rgba(255, 255, 255, 0) 70%);
+            top: -120px;
             z-index: -1;
         }
     </style>
 </head>
-<body class="relative overflow-x-hidden pb-16">
+<body class="relative overflow-x-hidden pb-20">
 
     <!-- 頂部裝飾光暈 -->
     <div class="glow-bg left-1/4 -translate-x-1/2"></div>
     <div class="glow-bg right-1/4 translate-x-1/2"></div>
 
-    <div class="max-w-4xl mx-auto px-4 pt-12 md:pt-20">
+    <div class="max-w-4xl mx-auto px-6 pt-16 md:pt-24">
         
         <!-- 頂部標題區 -->
-        <header class="text-center mb-10">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/30 mb-4 animate-bounce">
+        <header class="text-center mb-12">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-xl shadow-blue-500/20 mb-6 transition-transform hover:scale-105 duration-300">
                 <!-- 學習主圖示 -->
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                 </svg>
             </div>
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 tracking-tight mb-2">英文學習入口</h1>
+            <h1 class="text-3xl md:text-5.5xl font-extrabold text-gray-900 tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-900 to-gray-900">英文學習入口</h1>
+            <p class="text-gray-400 text-sm md:text-base font-medium max-w-md mx-auto">精選、高效的英語數位學習資源導航入口</p>
         </header>
 
-        <!-- 按鈕網格 (移除原先的搜尋框，直接呈現版面) -->
+        <!-- 按鈕網格 (已移除了搜尋框，直接呈現極簡精美版面) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="toolsGrid"></div>
 
     </div>
@@ -72,8 +73,8 @@
                 desc: "自主進行單字背誦、測驗與複習",
                 url: "practice.html",
                 isLocal: true,
-                icon: `<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                icon: `<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                        </svg>`
             },
             { 
@@ -81,8 +82,8 @@
                 desc: "透過人工智慧深入解析字源、語境與例句",
                 url: "dictionary.html",
                 isLocal: true,
-                icon: `<svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                icon: `<svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                        </svg>`
             },
             { 
@@ -90,16 +91,16 @@
                 desc: "動態英打練習，邊打字邊記憶核心單字",
                 url: "https://typewords.cc/words",
                 isLocal: false,
-                /* 參考 image_69045b.png 高度還原的 SVG 圖示 */
-                icon: `<svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                /* 完美還原 image_69045b.png 的高質感 SVG 設計 */
+                icon: `<svg class="w-10 h-10 drop-shadow-md rounded-xl transition-transform duration-300 group-hover:scale-110" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <!-- 藍色圓角背景 -->
-                        <rect width="48" height="48" rx="10" fill="#0070f3"/>
+                        <rect width="64" height="64" rx="14" fill="#0070f3"/>
                         <!-- 內層微透白色邊框 -->
-                        <rect x="4" y="4" width="40" height="40" rx="7" stroke="white" stroke-width="2" stroke-opacity="0.25" fill="none"/>
+                        <rect x="5" y="5" width="54" height="54" rx="11" stroke="white" stroke-width="2" stroke-opacity="0.25" fill="none"/>
                         <!-- 展開的白色書本背景 -->
-                        <path d="M24 13.5c-2.5-3-7-3.5-10.5-3.5H10v22h3.5c3 0 6.5 1 10.5 4 4-3 7.5-4 10.5-4H38V10h-3.5c-3.5 0-8 .5-10.5 3.5z" fill="white" fill-opacity="0.15" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-                        <!-- 中央厚實的 T 字按鍵造型 -->
-                        <path d="M18 17.5h12M24 17.5v12" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M32 19c-3-4-9-4.5-13.5-4.5H13v30h5.5c4.5 0 9 1.5 13.5 5 4.5-3.5 9-5 13.5-5H51V14.5h-5.5C41 14.5 35 15 32 19z" fill="white" fill-opacity="0.15" stroke="white" stroke-width="2.2" stroke-linejoin="round"/>
+                        <!-- 中央大寫且粗曠的 T 字按鍵造型 -->
+                        <path d="M22 23.5h20M32 23.5v17.5M26 41h12" stroke="white" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
                        </svg>`
             },
             { 
@@ -116,30 +117,14 @@
                 desc: "儲存、同步與管理您個人單字的雲端試算表",
                 url: "https://docs.google.com/spreadsheets/d/16y8_QTo0QrQe5El9ylVvps94mhNi7zRuErIrxRkwoQc/edit?gid=947735951#gid=947735951",
                 isLocal: false,
-                icon: `<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                icon: `<svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                        </svg>`
             }
         ];
 
         // ==================================================
-        //  每日金句資料庫（隨機顯示）
-        // ==================================================
-        const quotes = [
-            { en: "The beautiful thing about learning is nobody can take it away from you.", zh: "學習最美妙的地方在於，沒有人能把它從你身邊奪走。" },
-            { en: "Learning is a treasure that will follow its owner everywhere.", zh: "知識是一座隨身攜帶的寶庫。" },
-            { en: "Believe you can and you're halfway there.", zh: "相信自己做得到，你就已經成功了一半。" },
-            { en: "Don't let what you cannot do interfere with what you can do.", zh: "不要讓你無法做到的事，阻礙了你所能做到的事。" },
-            { en: "Continuous learning is the minimum requirement for success.", zh: "持續不斷地學習，是成功最基本的條件。" }
-        ];
-
-        // 初始化每日金句
-        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-        document.getElementById('quoteEn').textContent = `"${randomQuote.en}"`;
-        document.getElementById('quoteZh').textContent = randomQuote.zh;
-
-        // ==================================================
-        //  自動產生網頁按鈕與渲染程式碼
+        //  自動產生網頁按鈕與渲染主程式
         // ==================================================
         const grid = document.getElementById('toolsGrid');
 
@@ -152,7 +137,7 @@
                 // 建立卡片連結元件
                 const card = document.createElement('a');
                 card.href = tool.url;
-                card.className = 'tool-card block bg-white border border-gray-100 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:border-blue-500 hover:shadow-lg flex items-start gap-4 group';
+                card.className = 'tool-card block bg-white border border-gray-100/80 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:border-blue-500/80 hover:shadow-xl flex items-start gap-4 group';
                 
                 if (isExternal) {
                     card.target = '_blank';
@@ -161,38 +146,38 @@
 
                 // 標籤樣式判斷 (本地 vs 外部)
                 const badgeHTML = tool.isLocal 
-                    ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 uppercase">本地工具</span>`
-                    : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600 uppercase">外部連結</span>`;
+                    ? `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 uppercase">本地工具</span>`
+                    : `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 uppercase">外部連結</span>`;
 
-                // 判斷是否為自訂特殊大圖示 (例如 Type Words)
+                // 判斷是否為 Type Words 的大尺寸圖示
                 const isSpecialLargeIcon = tool.name === "Type Words";
                 const iconContainerClass = isSpecialLargeIcon 
-                    ? `flex-shrink-0 w-12 h-12 flex items-center justify-center transition-colors`
-                    : `flex-shrink-0 w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100/80 group-hover:bg-blue-50/50 transition-colors`;
+                    ? `flex-shrink-0 w-12 h-12 flex items-center justify-center`
+                    : `flex-shrink-0 w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:bg-blue-50/50 transition-colors duration-300`;
 
                 card.innerHTML = `
-                    <!-- 左側圖示外框 -->
+                    <!-- 左側圖示 -->
                     <div class="${iconContainerClass}">
                         ${tool.icon || `
-                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
                             </svg>
                         `}
                     </div>
                     
                     <!-- 右側主要內容 -->
                     <div class="flex-grow">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h2 class="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">${tool.name}</h2>
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <h2 class="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors duration-200">${tool.name}</h2>
                             ${badgeHTML}
                         </div>
                         <p class="text-sm text-gray-400 leading-relaxed pr-6">${tool.desc || '暫無描述。'}</p>
                     </div>
 
                     <!-- 右下角引導小箭頭 -->
-                    <div class="absolute bottom-6 right-6 text-gray-300 group-hover:text-blue-500 transition-colors">
-                        <svg class="w-5 h-5 transform translate-x-0 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    <div class="absolute bottom-6 right-6 text-gray-300 group-hover:text-blue-500 transition-all duration-300">
+                        <svg class="w-5 h-5 transform translate-x-0 group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
                         </svg>
                     </div>
                 `;

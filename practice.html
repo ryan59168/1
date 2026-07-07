@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="robots" content="noindex">
-<title>單字練習_雙向翻牌</title>
+<title>單字練習</title>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -163,7 +163,15 @@ dialog::backdrop {
 }
 .dialog-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;}
 .close-dialog-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #a0aec0; line-height: 1; }
-.dialog-content { padding: 20px; line-height: 1.6; color: #4a5568; font-size: 1rem; white-space: pre-wrap; }
+.dialog-content {
+  padding: 16px;
+  line-height: 1.6;
+  color: #4a5568;
+  font-size: 1rem;
+  max-height: 56vh;
+  overflow-y: auto;
+  background: #f8fafc;
+}
 
 /* 控制按鈕群 */
 .controls {
@@ -216,6 +224,41 @@ input[type="text"] {
   min-width: 120px;
 }
 
+select {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  flex: 1;
+  min-width: 160px;
+  background: #fff;
+  color: var(--text-main);
+}
+
+.quiz-options {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.quiz-option {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-main);
+  border-radius: 10px;
+  min-height: 48px;
+  padding: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.quiz-option:hover { border-color: var(--accent); }
+.quiz-option.correct { background: #c6f6d5; border-color: #38a169; }
+.quiz-option.wrong { background: #fed7d7; border-color: #e53e3e; }
+.quiz-option:disabled { cursor: default; }
+
 textarea {
   width: 100%;
   height: 20vw; 
@@ -260,6 +303,7 @@ iframe {
   .btn { width: 100%; }
   .modes { gap: 6px; }
   .mode-btn { flex: 1; text-align: center; font-size: 13px; padding: 8px 4px;}
+  .quiz-options { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -269,8 +313,9 @@ iframe {
   
   <div class="card">
     <div class="modes">
-      <button id="m3" class="mode-btn">依序瀏覽</button>
-      <button id="m0" class="mode-btn active">隨機抽題</button>
+      <button id="m3" class="mode-btn active">依序預覽</button>
+      <button id="m4" class="mode-btn">選擇測驗</button>
+      <button id="m0" class="mode-btn">隨機抽題</button>
       <button id="m1" class="mode-btn">中 → 英</button>
       <button id="m2" class="mode-btn">英 → 中</button>
     </div>
@@ -289,6 +334,7 @@ iframe {
 
       <div id="subText" class="sub-text"></div>
       <div id="hint" class="hint-text"></div>
+      <div id="quizOptions" class="quiz-options hidden"></div>
     </div>
 
     <div class="controls">
@@ -301,7 +347,10 @@ iframe {
     <label style="font-weight:600; display:block; margin-bottom:8px;">題庫管理</label>
     
     <div class="input-group">
-      <input type="text" id="sheetNameInput" value="1" placeholder="工作表名稱">
+      <select id="sheetNameSelect">
+        <option value="">正在偵測工作表頁籤...</option>
+      </select>
+      <button id="refreshSheetsBtn" class="btn btn-secondary" style="padding: 8px 16px; font-size:14px;">重新偵測</button>
       <button id="importBtn" class="btn btn-primary" style="padding: 8px 16px; font-size:14px;">疊加匯入</button>
       <button id="clearBtn" class="btn btn-secondary" style="padding: 8px 16px; font-size:14px;">清空</button>
     </div>
@@ -310,21 +359,10 @@ iframe {
     <textarea id="pairs" placeholder="題庫內容 (格式: 中文 - 英文)"></textarea>
     
     <div style="display:flex; gap:8px;">
-      <button id="toggleSheetBtn" class="btn btn-secondary" style="flex:1; padding:10px; font-size:0.9rem;">
-        ▼ 展開/隱藏 Google 試算表 (預覽與編輯)
-      </button>
       <a href="https://docs.google.com/spreadsheets/d/16y8_QTo0QrQe5El9ylVvps94mhNi7zRuErIrxRkwoQc/edit?usp=sharing" target="_blank" class="btn btn-secondary" style="padding:10px; font-size:0.9rem; text-decoration:none; display:flex; align-items:center; justify-content:center;">
         ↗ 開啟原始檔
       </a>
     </div>
-    
-    <div id="sheetContainer" class="sheet-container">
-      <iframe id="sheetFrame" src=""></iframe>
-    </div>
-
-    <small style="color:#718096; display:block; margin-top:8px;">
-      * 若要編輯，請直接在下方表格操作（變更會自動儲存到 Google Sheet，請重新匯入以更新題庫）。
-    </small>
   </div>
 </div>
 
@@ -345,15 +383,12 @@ iframe {
    ================================================== */
 const SHEET_ID = "16y8_QTo0QrQe5El9ylVvps94mhNi7zRuErIrxRkwoQc"; 
 
-// 初始化 Iframe
-const sheetFrame = document.getElementById("sheetFrame");
-sheetFrame.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?rm=minimal`;
-
 /* ================= 變數宣告 ================= */
 let pairs = [];        
 let current = null;    
-let mode = 0;          
+let mode = 3;          
 let seqIndex = 0;      
+let quizAnswered = false;
 
 // DOM 元素
 const mainTextEl = document.getElementById("mainText");
@@ -365,8 +400,9 @@ const showBtn = document.getElementById("showBtn");
 const nextBtn = document.getElementById("nextBtn");
 const textArea = document.getElementById("pairs");
 const statusMsg = document.getElementById("statusMsg");
-const toggleSheetBtn = document.getElementById("toggleSheetBtn");
-const sheetContainer = document.getElementById("sheetContainer");
+const sheetNameSelect = document.getElementById("sheetNameSelect");
+const refreshSheetsBtn = document.getElementById("refreshSheetsBtn");
+const quizOptionsEl = document.getElementById("quizOptions");
 // Modal Elements
 const aiModal = document.getElementById("aiModal");
 const aiContent = document.getElementById("aiContent");
@@ -380,11 +416,20 @@ function nextCard() {
     render();
     return;
   }
+  if (mode === 4 && pairs.length < 4) {
+    current = null;
+    render();
+    return;
+  }
   if (mode === 3) {
     if (seqIndex >= pairs.length) seqIndex = 0; 
     const p = pairs[seqIndex];
     current = { p: p, d: 3 }; 
     seqIndex++; 
+  } else if (mode === 4) {
+    const p = pairs[Math.floor(Math.random() * pairs.length)];
+    current = { p, d: 4, choices: buildQuizChoices(p) };
+    quizAnswered = false;
   } else {
     const p = pairs[Math.floor(Math.random() * pairs.length)];
     let d = 0;
@@ -411,6 +456,8 @@ function prevCard() {
 
 function render() {
   subTextEl.textContent = ""; 
+  quizOptionsEl.innerHTML = "";
+  quizOptionsEl.classList.add("hidden");
   speakBtn.classList.add("hidden");
   aiBtn.classList.add("hidden"); 
 
@@ -432,6 +479,9 @@ function render() {
   if (mode === 3) {
       showBtn.textContent = "上一題";
       nextBtn.textContent = "下一題";
+  } else if (mode === 4) {
+      showBtn.textContent = "看答案";
+      nextBtn.textContent = "下一題";
   } else {
       if (current && current.d === 0) showBtn.textContent = "顯示中文";
       else showBtn.textContent = "顯示英文";
@@ -439,8 +489,13 @@ function render() {
   }
 
   if (!current) {
-    mainTextEl.textContent = pairs.length ? "請按下一題" : "題庫為空";
-    hintEl.textContent = "";
+    if (mode === 4 && pairs.length > 0 && pairs.length < 4) {
+      mainTextEl.textContent = "測驗至少需要 4 筆題庫";
+      hintEl.textContent = `目前 ${pairs.length} 筆`;
+    } else {
+      mainTextEl.textContent = pairs.length ? "請按下一題" : "題庫為空";
+      hintEl.textContent = "";
+    }
     showBtn.textContent = "顯示翻譯";
     showBtn.disabled = true;
     return;
@@ -452,6 +507,10 @@ function render() {
     mainTextEl.textContent = current.p.zh;
     subTextEl.textContent = current.p.en;
     hintEl.textContent = `順序瀏覽: ${seqIndex} / ${pairs.length}`;
+  } else if (mode === 4) {
+    mainTextEl.textContent = current.p.en;
+    hintEl.textContent = "選出正確中文";
+    renderQuizOptions();
   } else if (current.d === 0) {
     mainTextEl.textContent = current.p.en;
     hintEl.textContent = "英文 → 中文";
@@ -465,15 +524,67 @@ function render() {
 
 function showAnswer() {
   if (!current) return;
+  if (mode === 4) {
+    quizAnswered = true;
+    subTextEl.textContent = current.p.zh;
+    hintEl.textContent = "答案已顯示";
+    renderQuizOptions();
+    return;
+  }
   if (current.d === 0) subTextEl.textContent = current.p.zh;
   else subTextEl.textContent = current.p.en;
   showBtn.textContent = "隱藏翻譯";
 }
 
 function hideAnswer() {
+  if (mode === 4) return;
   subTextEl.textContent = "";
   if (current.d === 0) showBtn.textContent = "顯示中文";
   else showBtn.textContent = "顯示英文";
+}
+
+function shuffleArray(arr) {
+  return arr
+    .map(value => ({ value, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ value }) => value);
+}
+
+function buildQuizChoices(answerPair) {
+  const wrongChoices = shuffleArray(
+    [...new Set(pairs
+      .filter(p => p.zh !== answerPair.zh)
+      .map(p => p.zh))]
+  ).slice(0, 3);
+  return shuffleArray([answerPair.zh, ...wrongChoices]);
+}
+
+function renderQuizOptions() {
+  quizOptionsEl.innerHTML = "";
+  quizOptionsEl.classList.remove("hidden");
+  current.choices.forEach(choice => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "quiz-option";
+    btn.textContent = choice;
+    btn.disabled = quizAnswered;
+    if (quizAnswered && choice === current.p.zh) btn.classList.add("correct");
+    btn.onclick = () => answerQuiz(choice, btn);
+    quizOptionsEl.appendChild(btn);
+  });
+}
+
+function answerQuiz(choice, selectedBtn) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const isCorrect = choice === current.p.zh;
+  selectedBtn.classList.add(isCorrect ? "correct" : "wrong");
+  subTextEl.textContent = isCorrect ? "答對了！" : `答錯了，答案是：${current.p.zh}`;
+  hintEl.textContent = "按下一題繼續";
+  [...quizOptionsEl.children].forEach(btn => {
+    btn.disabled = true;
+    if (btn.textContent === current.p.zh) btn.classList.add("correct");
+  });
 }
 
 /* ================= 發音功能 ================= */
@@ -487,48 +598,64 @@ function speak(text) {
 
 /* ================= AI Gemini 功能 ================= */
 async function askGemini(word) {
-    // 1. 介面顯示：開啟 Modal 並顯示載入中
     aiModal.showModal();
     aiContent.textContent = "AI 老師正在思考中...";
-    
-    // 2. 準備提示詞 (Prompt)
-    const promptText = `請解釋英文單字 "${word}" 的中文意思，詞性，近似詞，返義詞，用法，並提供一個簡單的英文例句附帶中文翻譯。請用繁體中文回答。`;
+
+    const promptText = `請解釋英文單字 "${word}" 的中文意思，詞性，近似詞，反義詞，用法，並提供一個簡單的英文例句附帶中文翻譯。請用繁體中文回答。`;
 
     try {
-        // ★ 3. 修改處：呼叫我們建立的 Vercel 後端，而非直接呼叫 Google
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                prompt: promptText // 將提示詞包裝在 prompt 欄位中傳給後端
-            })
-        });
-
-        const data = await response.json();
-        
-        // 4. 錯誤處理
-        if (!response.ok || data.error) {
-             console.error("API Error:", data.error);
-             // 讀取錯誤訊息，如果是物件就轉字串，否則直接顯示
-             const errMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : data.error;
-             throw new Error(errMsg || "伺服器發生錯誤");
-        }
-
-        // 5. 解析資料 (因為後端是原樣轉傳 Google 的回應，所以這裡解析邏輯不用變)
-        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-            throw new Error("AI 回傳內容為空");
-        }
-
-        let text = data.candidates[0].content.parts[0].text;
-        
-        // 6. 簡單的格式化 (轉 HTML)
-        text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-        aiContent.innerHTML = text;
-
+        const text = await callGemini(promptText);
+        aiContent.innerHTML = formatAiText(text);
     } catch (error) {
         console.error("Gemini Fetch Error:", error);
         aiContent.textContent = "發生錯誤：" + error.message;
     }
+}
+
+function escapeHTML(text) {
+    return text.replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    }[char]));
+}
+
+function formatAiText(text) {
+    return escapeHTML(text).replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+}
+
+async function readJsonResponse(response, fallbackLabel) {
+    const rawText = await response.text();
+    try {
+        return JSON.parse(rawText);
+    } catch (error) {
+        const preview = rawText.trim().slice(0, 120) || "空白回應";
+        throw new Error(`${fallbackLabel} 沒有回傳 JSON：${preview}`);
+    }
+}
+
+async function callGemini(promptText) {
+    const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptText })
+    });
+
+    const data = await readJsonResponse(response, "AI 後端");
+
+    if (!response.ok || data.error) {
+         console.error("API Error:", data.error);
+         const errMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : data.error;
+         throw new Error(errMsg || "伺服器發生錯誤");
+    }
+
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error("AI 回傳內容為空");
+    }
+
+    return data.candidates[0].content.parts[0].text;
 }
 
 // 關閉 Modal
@@ -563,10 +690,66 @@ function parsePairs(text) {
 }
 
 /* ================= 匯入邏輯 ================= */
+async function loadSheetTabs() {
+  sheetNameSelect.innerHTML = `<option value="">正在偵測工作表頁籤...</option>`;
+  statusMsg.textContent = "正在偵測工作表頁籤...";
+  statusMsg.style.color = "var(--accent)";
+
+  try {
+    const titles = await fetchSheetTitles();
+    if (!titles.length) throw new Error("找不到工作表頁籤");
+
+    sheetNameSelect.innerHTML = titles
+      .map(title => `<option value="${escapeHTML(title)}">${escapeHTML(title)}</option>`)
+      .join("");
+    statusMsg.textContent = `已偵測到 ${titles.length} 個工作表頁籤`;
+    statusMsg.style.color = "green";
+  } catch (e) {
+    console.error(e);
+    sheetNameSelect.innerHTML = `<option value="1">1</option>`;
+    statusMsg.textContent = "頁籤偵測失敗，已先使用預設頁籤 1";
+    statusMsg.style.color = "red";
+  }
+}
+
+async function fetchSheetTitles() {
+  try {
+    const res = await fetch(`/api/sheets?id=${encodeURIComponent(SHEET_ID)}`);
+    if (res.ok) {
+      const data = await readJsonResponse(res, "頁籤偵測後端");
+      if (Array.isArray(data.titles) && data.titles.length) return data.titles;
+    }
+  } catch (e) {
+    console.warn("Server sheet tab detection failed:", e);
+  }
+
+  const legacyUrl = `https://spreadsheets.google.com/feeds/worksheets/${SHEET_ID}/public/basic?alt=json`;
+  try {
+    const res = await fetch(legacyUrl);
+    if (res.ok) {
+      const data = await readJsonResponse(res, "Google 舊版頁籤來源");
+      const titles = (data.feed.entry || [])
+        .map(entry => entry.title && entry.title.$t)
+        .filter(Boolean);
+      if (titles.length) return titles;
+    }
+  } catch (e) {
+    console.warn("Legacy sheet tab detection failed:", e);
+  }
+
+  const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`;
+  const res = await fetch(metadataUrl);
+  if (!res.ok) throw new Error("無法讀取頁籤清單");
+  const data = await readJsonResponse(res, "Google 頁籤來源");
+  return (data.sheets || [])
+    .map(sheet => sheet.properties && sheet.properties.title)
+    .filter(Boolean);
+}
+
 async function importSheet() {
   statusMsg.textContent = "載入中...";
   statusMsg.style.color = "var(--accent)";
-  const sheetName = document.getElementById("sheetNameInput").value.trim();
+  const sheetName = sheetNameSelect.value.trim();
   let url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
   if (sheetName) url += `&sheet=${encodeURIComponent(sheetName)}`;
   try {
@@ -601,35 +784,38 @@ async function importSheet() {
 
 /* ================= 事件綁定 ================= */
 document.getElementById("importBtn").onclick = importSheet;
+refreshSheetsBtn.onclick = loadSheetTabs;
 document.getElementById("clearBtn").onclick = () => {
-  pairs = []; current = null; seqIndex = 0; textArea.value = ""; render(); statusMsg.textContent = "已清空";
+  pairs = []; current = null; seqIndex = 0; quizAnswered = false; textArea.value = ""; render(); statusMsg.textContent = "已清空";
 };
 nextBtn.onclick = nextCard;
 showBtn.onclick = () => {
   if (mode === 3) { prevCard(); return; }
   if (subTextEl.textContent.trim() === "") showAnswer(); else hideAnswer();
 };
-toggleSheetBtn.onclick = () => {
-  if (sheetContainer.style.display === 'block') {
-    sheetContainer.style.display = 'none';
-    toggleSheetBtn.textContent = '▼ 展開/隱藏 Google 試算表 (預覽與編輯)';
-  } else {
-    sheetContainer.style.display = 'block';
-    toggleSheetBtn.textContent = '▲ 收起 Google 試算表';
-  }
-};
-const modeBtns = ["m0", "m1", "m2", "m3"];
-modeBtns.forEach((id, index) => {
+const modeMap = [
+  { id: "m0", mode: 0 },
+  { id: "m1", mode: 1 },
+  { id: "m2", mode: 2 },
+  { id: "m3", mode: 3 },
+  { id: "m4", mode: 4 }
+];
+modeMap.forEach(({ id, mode: btnMode }) => {
   document.getElementById(id).onclick = () => {
-    mode = index;
+    mode = btnMode;
     if (mode === 3) seqIndex = 0;
-    modeBtns.forEach((x, j) => document.getElementById(x).classList.toggle("active", j === index));
+    quizAnswered = false;
+    modeMap.forEach(({ id: otherId, mode: otherMode }) => {
+      document.getElementById(otherId).classList.toggle("active", otherMode === mode);
+    });
     nextCard();
   };
 });
 textArea.addEventListener('input', () => {
   const text = textArea.value; pairs = parsePairs(text); statusMsg.textContent = `手動更新: ${pairs.length} 筆`;
 });
+loadSheetTabs();
+render();
 </script>
 </body>
 </html>

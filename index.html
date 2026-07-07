@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>英文學習入口 Portal</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'%3E%3Cpath d='M12 11.55C9.64 9.35 6.48 8 3 8v11c3.48 0 6.64 1.35 9 3.55 2.36-2.2 5.52-3.55 9-3.55V8c-3.48 0-6.64 1.35-9 3.55zM12 8c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3z'/%3E%3C/svg%3E">
-    <!-- 引入 Tailwind CSS 提升排版彈性 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
@@ -26,7 +25,7 @@
             box-shadow: 0 22px 35px -5px rgba(37, 99, 235, 0.12), 0 12px 16px -6px rgba(37, 99, 235, 0.06);
         }
 
-        /* 裝飾用背景光暈 */
+        /* 裝飾用背景光暈 - 行動端防溢出 */
         .glow-bg {
             position: absolute;
             width: 450px;
@@ -34,39 +33,31 @@
             background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, rgba(255, 255, 255, 0) 70%);
             top: -120px;
             z-index: -1;
+            pointer-events: none;
         }
     </style>
 </head>
-<body class="relative overflow-x-hidden pb-20">
+<body class="relative overflow-x-hidden pb-20 w-full">
 
-    <!-- 頂部裝飾光暈 -->
     <div class="glow-bg left-1/4 -translate-x-1/2"></div>
     <div class="glow-bg right-1/4 translate-x-1/2"></div>
 
-    <div class="max-w-4xl mx-auto px-6 pt-16 md:pt-24">
+    <div class="max-w-4xl mx-auto px-4 md:px-6 pt-16 md:pt-24 w-full box-border">
         
-        <!-- 頂部標題區 -->
         <header class="text-center mb-12">
             <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-xl shadow-blue-500/20 mb-6 transition-transform hover:scale-105 duration-300">
-                <!-- 學習主圖示 -->
                 <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                 </svg>
             </div>
-            <h1 class="text-3xl md:text-5.5xl font-extrabold text-gray-900 tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-900 to-gray-900">英文學習入口</h1>
-            <p></p>
+            <h1 class="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-900 to-gray-900">英文學習入口</h1>
         </header>
 
-        <!-- 按鈕網格 (直接呈現乾淨優雅的版面) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="toolsGrid"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full" id="toolsGrid"></div>
 
     </div>
 
     <script>
-        // ==================================================
-        //  【未來新增工具列表】
-        //  在此新增或修改工具，支援精美的內建 SVG 圖示！
-        // ==================================================
         const tools = [
             { 
                 name: "單字練習", 
@@ -91,13 +82,9 @@
                 desc: "動態英打練習，邊打字邊記憶核心單字",
                 url: "https://typewords.cc/words",
                 isLocal: false,
-                /* 完美解決 image_6974f7.png 問題：整合藍色圓角背景與書頁至 SVG 內部，呈現高質感 Flat 設計 */
                 icon: `<svg class="w-12 h-12 rounded-xl shadow-sm hover:scale-105 transition-transform duration-300" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- 1. 藍色圓角背景 -->
                         <rect width="48" height="48" rx="10" fill="#0070f3"/>
-                        <!-- 2. 展開的白色精緻書本 -->
                         <path d="M24 15c-3-3-8-3.5-12-2.5v19c4-1 9-.5 12 2.5 3-3 8-3.5 12-2.5v-19c-4-1-9-.5-12 2.5z" fill="white"/>
-                        <!-- 3. 書頁中央的藍色「T」字 keycap (與背景色一致，呈現完美的挖空視覺) -->
                         <path d="M17 19.5h14c.6 0 1 .4 1 1v0.5c0 .6-.4 1-1 1h-4.5v6.5c0 .8-.7 1.5-1.5 1.5h-1c-.8 0-1.5-.7-1.5-1.5v-6.5H17c-.6 0-1-.4-1-1v-0.5c0-.6.4-1 1-1z" fill="#0070f3"/>
                        </svg>`
             },
@@ -121,9 +108,6 @@
             }
         ];
 
-        // ==================================================
-        //  自動產生網頁按鈕與渲染主程式
-        // ==================================================
         const grid = document.getElementById('toolsGrid');
 
         function renderTools() {
@@ -131,62 +115,25 @@
             
             tools.forEach(tool => {
                 const isExternal = tool.url.startsWith('http');
-                
-                // 建立卡片連結元件
                 const card = document.createElement('a');
                 card.href = tool.url;
-                card.className = 'tool-card block bg-white border border-gray-100/80 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:border-blue-500/80 hover:shadow-xl flex items-start gap-4 group';
+                card.className = 'tool-card block bg-white border border-gray-100/80 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:border-blue-500/80 hover:shadow-xl flex items-start gap-4 group w-full box-border';
                 
                 if (isExternal) {
                     card.target = '_blank';
                     card.rel = 'noopener noreferrer';
                 }
 
-                // 標籤樣式判斷 (本地 vs 外部)
                 const badgeHTML = tool.isLocal 
-                    ? `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 uppercase">本地工具</span>`
-                    : `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 uppercase">外部連結</span>`;
+                    ? `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 uppercase flex-shrink-0">本地工具</span>`
+                    : `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 uppercase flex-shrink-0">外部連結</span>`;
 
-                // 控制圖示的外層容器樣式。
-                // 如果是 Type Words，外層容器直接轉為極簡的實心藍底（#0070f3）圓角矩形，與其他圖示完全對齊！
                 const isSpecialLargeIcon = tool.name === "Type Words";
                 const iconContainerClass = isSpecialLargeIcon 
                     ? `flex-shrink-0 w-12 h-12 rounded-xl bg-[#0070f3] flex items-center justify-center shadow-sm shadow-blue-500/20 group-hover:scale-105 transition-all duration-300`
                     : `flex-shrink-0 w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:bg-blue-50/50 transition-all duration-300`;
 
                 card.innerHTML = `
-                    <!-- 左側圖示 -->
                     <div class="${iconContainerClass}">
                         ${tool.icon || `
-                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                            </svg>
-                        `}
-                    </div>
-                    
-                    <!-- 右側主要內容 -->
-                    <div class="flex-grow">
-                        <div class="flex items-center gap-2 mb-1.5">
-                            <h2 class="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors duration-200">${tool.name}</h2>
-                            ${badgeHTML}
-                        </div>
-                        <p class="text-sm text-gray-400 leading-relaxed pr-6">${tool.desc || '暫無描述。'}</p>
-                    </div>
-
-                    <!-- 右下角引導小箭頭 -->
-                    <div class="absolute bottom-6 right-6 text-gray-300 group-hover:text-blue-500 transition-all duration-300">
-                        <svg class="w-5 h-5 transform translate-x-0 group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </div>
-                `;
-
-                grid.appendChild(card);
-            });
-        }
-
-        // 首次載入渲染
-        renderTools();
-    </script>
-</body>
-</html>
+                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24

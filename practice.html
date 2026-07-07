@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="robots" content="noindex">
-<title>單字練習</title>
+<title>單字練習_雙向翻牌</title>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -350,7 +350,6 @@ iframe {
       <select id="sheetNameSelect">
         <option value="">正在偵測工作表頁籤...</option>
       </select>
-      <button id="refreshSheetsBtn" class="btn btn-secondary" style="padding: 8px 16px; font-size:14px;">重新偵測</button>
       <button id="importBtn" class="btn btn-primary" style="padding: 8px 16px; font-size:14px;">疊加匯入</button>
       <button id="clearBtn" class="btn btn-secondary" style="padding: 8px 16px; font-size:14px;">清空</button>
     </div>
@@ -401,7 +400,6 @@ const nextBtn = document.getElementById("nextBtn");
 const textArea = document.getElementById("pairs");
 const statusMsg = document.getElementById("statusMsg");
 const sheetNameSelect = document.getElementById("sheetNameSelect");
-const refreshSheetsBtn = document.getElementById("refreshSheetsBtn");
 const quizOptionsEl = document.getElementById("quizOptions");
 // Modal Elements
 const aiModal = document.getElementById("aiModal");
@@ -784,7 +782,6 @@ async function importSheet() {
 
 /* ================= 事件綁定 ================= */
 document.getElementById("importBtn").onclick = importSheet;
-refreshSheetsBtn.onclick = loadSheetTabs;
 document.getElementById("clearBtn").onclick = () => {
   pairs = []; current = null; seqIndex = 0; quizAnswered = false; textArea.value = ""; render(); statusMsg.textContent = "已清空";
 };

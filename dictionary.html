@@ -353,7 +353,7 @@
         
         // 📚 Google Sheets 生字本雲端同步設定
         // 請將下方網址換成您部署 Google Apps Script 網頁應用程式後取得的網址（結尾通常是 /exec）
-        const VOCAB_API_URL = 'AKfycbyi2qfCBe9ZiMbcYoJDsAf37cckb4g1LKYXP0_xuJJEexO80XHQOGBRHQcgR6594QgU';
+        const VOCAB_API_URL = 'https://script.google.com/macros/s/AKfycbyi2qfCBe9ZiMbcYoJDsAf37cckb4g1LKYXP0_xuJJEexO80XHQOGBRHQcgR6594QgU/exec';
 
         // 📚 生字本 LocalStorage 做為離線快取，避免尚未連上雲端或網路異常時資料消失
         let favorites = JSON.parse(localStorage.getItem('lexichat_favorites')) || [];

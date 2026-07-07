@@ -507,6 +507,7 @@ function render() {
     hintEl.textContent = `順序瀏覽: ${seqIndex} / ${pairs.length}`;
   } else if (mode === 4) {
     mainTextEl.textContent = current.p.en;
+    hintEl.textContent = "選出正確中文";
     renderQuizOptions();
   } else if (current.d === 0) {
     mainTextEl.textContent = current.p.en;
@@ -524,6 +525,7 @@ function showAnswer() {
   if (mode === 4) {
     quizAnswered = true;
     subTextEl.textContent = current.p.zh;
+    hintEl.textContent = "答案已顯示";
     renderQuizOptions();
     return;
   }
@@ -814,5 +816,4 @@ render();
 </script>
 </body>
 </html>
-
 

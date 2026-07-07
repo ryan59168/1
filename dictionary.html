@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -312,9 +313,14 @@
                 <i class="fa-solid fa-book-bookmark text-rose-500"></i>
                 <span class="font-bold text-sm">我的持久生字本</span>
             </div>
-            <button onclick="toggleVocabDrawer()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
+            <div class="flex items-center space-x-1">
+                <button onclick="loadFavoritesFromSheet()" class="text-slate-400 hover:text-indigo-600 p-1.5 rounded-lg hover:bg-indigo-50 transition" title="從 Google Sheets 重新整理">
+                    <i class="fa-solid fa-rotate" id="vocabSyncIcon"></i>
+                </button>
+                <button onclick="toggleVocabDrawer()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
         </div>
         <!-- 搜尋生字 -->
         <div class="p-3 border-b border-slate-100 bg-white">
@@ -345,13 +351,67 @@
         let chatHistory = [];
         let activeSearchId = 0;
         
-        // 📚 生字本 LocalStorage 初始化與快取存取
+        // 📚 Google Sheets 生字本雲端同步設定
+        // 請將下方網址換成您部署 Google Apps Script 網頁應用程式後取得的網址（結尾通常是 /exec）
+        const VOCAB_API_URL = 'AKfycbyi2qfCBe9ZiMbcYoJDsAf37cckb4g1LKYXP0_xuJJEexO80XHQOGBRHQcgR6594QgU';
+
+        // 📚 生字本 LocalStorage 做為離線快取，避免尚未連上雲端或網路異常時資料消失
         let favorites = JSON.parse(localStorage.getItem('lexichat_favorites')) || [];
-        
-        // 頁面加載完成後更新生字本標章
+
+        // 頁面加載完成後：先用本機快取顯示，接著向 Google Sheets 拉取最新資料
         window.addEventListener('DOMContentLoaded', () => {
             updateVocabBadge();
+            loadFavoritesFromSheet();
         });
+
+        // 是否已完成 Google Sheets 網址設定
+        function isVocabApiConfigured() {
+            return VOCAB_API_URL && !VOCAB_API_URL.includes('YOUR_GOOGLE_APPS_SCRIPT');
+        }
+
+        // 從 Google Sheets 讀取最新生字本（供跨裝置同步）
+        async function loadFavoritesFromSheet() {
+            if (!isVocabApiConfigured()) {
+                console.warn('尚未設定 Google Sheets 網址，生字本目前僅使用本機儲存。');
+                return;
+            }
+            const icon = document.getElementById('vocabSyncIcon');
+            if (icon) icon.classList.add('fa-spin');
+            try {
+                const res = await fetch(`${VOCAB_API_URL}?action=list`);
+                const data = await res.json();
+                if (data.status === 'ok' && Array.isArray(data.items)) {
+                    favorites = data.items;
+                    localStorage.setItem('lexichat_favorites', JSON.stringify(favorites));
+                    updateVocabBadge();
+                    renderVocabList();
+                    updateFavoriteButtonState();
+                } else {
+                    throw new Error(data.message || '格式錯誤');
+                }
+            } catch (e) {
+                console.error('讀取 Google Sheets 生字本失敗，改用本機快取：', e);
+                showCustomToast('雲端生字本讀取失敗，暫時顯示本機資料', 'error');
+            } finally {
+                if (icon) icon.classList.remove('fa-spin');
+            }
+        }
+
+        // 將單筆新增/刪除動作同步到 Google Sheets
+        async function syncFavoriteToSheet(action, payload) {
+            if (!isVocabApiConfigured()) return;
+            try {
+                await fetch(VOCAB_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // 用 text/plain 避免觸發 CORS 預檢請求
+                    body: JSON.stringify({ action, ...payload })
+                });
+            } catch (e) {
+                console.error('同步到 Google Sheets 失敗：', e);
+                showCustomToast('雲端同步失敗，請確認網路連線', 'error');
+            }
+        }
+
         // 📚 側邊抽屜生字本控制器
         function toggleVocabDrawer() {
             const drawer = document.getElementById('vocabDrawer');
@@ -360,13 +420,14 @@
                 drawer.classList.remove('translate-x-full');
                 backdrop.classList.remove('hidden');
                 renderVocabList();
+                loadFavoritesFromSheet();
             } else {
                 drawer.classList.add('translate-x-full');
                 backdrop.classList.add('hidden');
             }
         }
 
-        // 儲存並同步生字本到 LocalStorage
+        // 儲存並同步生字本到 LocalStorage（本機快取）
         function saveFavorites() {
             localStorage.setItem('lexichat_favorites', JSON.stringify(favorites));
             updateVocabBadge();
@@ -397,15 +458,17 @@
                     date: new Date().toISOString()
                 };
                 favorites.push(newItem);
-                showCustomToast(`已將「${currentWord}」加入生字本並持久儲存！`, 'success');
+                showCustomToast(`已將「${currentWord}」加入生字本並同步至 Google Sheets！`, 'success');
                 btn.className = 'p-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition';
                 btn.innerHTML = `<i class="fa-solid fa-heart text-lg text-rose-500"></i>`;
+                syncFavoriteToSheet('add', { item: newItem });
             } else {
                 // 已收藏，移除生字本
                 favorites.splice(index, 1);
                 showCustomToast('已從生字本移出。', 'info');
                 btn.className = 'p-2.5 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 transition text-slate-400';
                 btn.innerHTML = `<i class="fa-regular fa-heart text-lg"></i>`;
+                syncFavoriteToSheet('delete', { word: currentWord });
             }
             saveFavorites();
         }
@@ -501,6 +564,7 @@
                 saveFavorites();
                 updateFavoriteButtonState();
                 showCustomToast(`已刪除「${word}」`, 'info');
+                syncFavoriteToSheet('delete', { word });
             }
         }
 

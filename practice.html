@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="robots" content="noindex">
-<title>單字練習_雙向翻牌</title>
+<title>單字練習</title>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -272,6 +272,147 @@ textarea {
   margin-bottom: 10px;
 }
 
+.source-textarea {
+  display: none;
+}
+
+.wordbook {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 10px;
+}
+
+.wordbook-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.book-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.book-title svg {
+  width: 18px;
+  height: 18px;
+  fill: var(--accent);
+}
+
+#wordCount {
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.search-box {
+  position: relative;
+}
+
+.search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  fill: #a0aec0;
+  pointer-events: none;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 11px 12px 11px 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--text-main);
+}
+
+.word-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.word-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.03);
+}
+
+.word-main {
+  min-width: 0;
+}
+
+.word-en {
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.word-zh {
+  margin-top: 3px;
+  color: #3b5bdb;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.word-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.list-icon-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #a0aec0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-icon-btn:hover {
+  background: #edf2f7;
+  color: var(--accent);
+}
+
+.list-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.empty-list {
+  padding: 24px 14px;
+  text-align: center;
+  color: var(--text-sub);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
 /* iframe 容器控制 */
 .sheet-container {
   margin-top: 10px;
@@ -355,7 +496,26 @@ iframe {
     </div>
     <div id="statusMsg"></div>
 
-    <textarea id="pairs" placeholder="題庫內容 (格式: 中文 - 英文)"></textarea>
+    <textarea id="pairs" class="source-textarea" placeholder="題庫內容 (格式: 中文 - 英文)"></textarea>
+
+    <div class="wordbook">
+      <div class="wordbook-header">
+        <div class="book-title">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12a2 2 0 0 1 2 2v16l-7-3-7 3V5a2 2 0 0 1 2-2zm2 3v11.95l5-2.15 5 2.15V5H7z"/></svg>
+          <span>生字本</span>
+        </div>
+        <span id="wordCount">0 筆</span>
+      </div>
+
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3a6.5 6.5 0 0 1 5.16 10.45l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 9.5 3m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z"/></svg>
+        <input id="wordSearch" type="text" placeholder="在收藏中搜尋單字...">
+      </div>
+
+      <div id="wordList" class="word-list">
+        <div class="empty-list">匯入題庫後會顯示在這裡</div>
+      </div>
+    </div>
     
     <div style="display:flex; gap:8px;">
       <a href="https://docs.google.com/spreadsheets/d/16y8_QTo0QrQe5El9ylVvps94mhNi7zRuErIrxRkwoQc/edit?usp=sharing" target="_blank" class="btn btn-secondary" style="padding:10px; font-size:0.9rem; text-decoration:none; display:flex; align-items:center; justify-content:center;">
@@ -401,6 +561,9 @@ const textArea = document.getElementById("pairs");
 const statusMsg = document.getElementById("statusMsg");
 const sheetNameSelect = document.getElementById("sheetNameSelect");
 const quizOptionsEl = document.getElementById("quizOptions");
+const wordSearch = document.getElementById("wordSearch");
+const wordList = document.getElementById("wordList");
+const wordCount = document.getElementById("wordCount");
 // Modal Elements
 const aiModal = document.getElementById("aiModal");
 const aiContent = document.getElementById("aiContent");
@@ -539,6 +702,85 @@ function hideAnswer() {
   subTextEl.textContent = "";
   if (current.d === 0) showBtn.textContent = "顯示中文";
   else showBtn.textContent = "顯示英文";
+}
+
+function syncTextArea() {
+  textArea.value = pairs.map(p => `${p.zh} - ${p.en}`).join("\n");
+}
+
+function renderWordList() {
+  const keyword = wordSearch.value.trim().toLowerCase();
+  const visiblePairs = pairs
+    .map((pair, index) => ({ pair, index }))
+    .filter(({ pair }) => {
+      if (!keyword) return true;
+      return pair.en.toLowerCase().includes(keyword) || pair.zh.toLowerCase().includes(keyword);
+    });
+
+  wordCount.textContent = `${pairs.length} 筆`;
+  wordList.innerHTML = "";
+
+  if (!visiblePairs.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-list";
+    empty.textContent = pairs.length ? "找不到符合的單字" : "匯入題庫後會顯示在這裡";
+    wordList.appendChild(empty);
+    return;
+  }
+
+  visiblePairs.forEach(({ pair, index }) => {
+    const item = document.createElement("div");
+    item.className = "word-item";
+
+    const main = document.createElement("div");
+    main.className = "word-main";
+
+    const en = document.createElement("div");
+    en.className = "word-en";
+    en.textContent = pair.en;
+
+    const zh = document.createElement("div");
+    zh.className = "word-zh";
+    zh.textContent = pair.zh;
+
+    main.appendChild(en);
+    main.appendChild(zh);
+
+    const actions = document.createElement("div");
+    actions.className = "word-actions";
+
+    const speakWordBtn = document.createElement("button");
+    speakWordBtn.type = "button";
+    speakWordBtn.className = "list-icon-btn";
+    speakWordBtn.setAttribute("aria-label", `發音 ${pair.en}`);
+    speakWordBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>';
+    speakWordBtn.onclick = () => speak(pair.en);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "list-icon-btn";
+    deleteBtn.setAttribute("aria-label", `刪除 ${pair.en}`);
+    deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v10h6V9h2v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9z"/></svg>';
+    deleteBtn.onclick = () => deletePair(index);
+
+    actions.appendChild(speakWordBtn);
+    actions.appendChild(deleteBtn);
+    item.appendChild(main);
+    item.appendChild(actions);
+    wordList.appendChild(item);
+  });
+}
+
+function deletePair(index) {
+  const [removed] = pairs.splice(index, 1);
+  if (current && current.p === removed) current = null;
+  if (seqIndex > pairs.length) seqIndex = pairs.length;
+  syncTextArea();
+  renderWordList();
+  if (!pairs.length) current = null;
+  render();
+  statusMsg.textContent = `已刪除 1 筆 (共 ${pairs.length} 筆)`;
+  statusMsg.style.color = "var(--accent)";
 }
 
 function shuffleArray(arr) {
@@ -768,7 +1010,8 @@ async function importSheet() {
     if (!newLinesText.length) throw new Error("無資料");
     let newPairs = parsePairs(newLinesText.join("\n"));
     pairs = pairs.concat(newPairs); 
-    textArea.value = pairs.map(p => `${p.zh} - ${p.en}`).join("\n");
+    syncTextArea();
+    renderWordList();
     statusMsg.textContent = `成功加入 ${newPairs.length} 筆 (共 ${pairs.length} 筆)`;
     statusMsg.style.color = "green";
     if (!current) nextCard();
@@ -783,7 +1026,14 @@ async function importSheet() {
 /* ================= 事件綁定 ================= */
 document.getElementById("importBtn").onclick = importSheet;
 document.getElementById("clearBtn").onclick = () => {
-  pairs = []; current = null; seqIndex = 0; quizAnswered = false; textArea.value = ""; render(); statusMsg.textContent = "已清空";
+  pairs = [];
+  current = null;
+  seqIndex = 0;
+  quizAnswered = false;
+  syncTextArea();
+  renderWordList();
+  render();
+  statusMsg.textContent = "已清空";
 };
 nextBtn.onclick = nextCard;
 showBtn.onclick = () => {
@@ -809,11 +1059,17 @@ modeMap.forEach(({ id, mode: btnMode }) => {
   };
 });
 textArea.addEventListener('input', () => {
-  const text = textArea.value; pairs = parsePairs(text); statusMsg.textContent = `手動更新: ${pairs.length} 筆`;
+  const text = textArea.value;
+  pairs = parsePairs(text);
+  renderWordList();
+  statusMsg.textContent = `手動更新: ${pairs.length} 筆`;
 });
+wordSearch.addEventListener("input", renderWordList);
 loadSheetTabs();
+renderWordList();
 render();
 </script>
 </body>
 </html>
+
 

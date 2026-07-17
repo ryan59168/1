@@ -115,6 +115,63 @@ body {
   margin-top: 8px;
 }
 
+.sheet-note {
+  width: min(100%, 620px);
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.sheet-note-label {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #e6f3ff;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sheet-note-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.96rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.sheet-note-speak {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  background: transparent;
+}
+
+.sheet-note-speak svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 480px) {
+  .sheet-note {
+    align-items: flex-start;
+    gap: 8px;
+    padding: 9px 10px;
+  }
+
+  .sheet-note-label {
+    margin-top: 2px;
+  }
+}
+
 /* 發音與AI按鈕容器 */
 .action-btns {
   display: flex;
@@ -533,6 +590,13 @@ iframe {
       </div>
 
       <div id="subText" class="sub-text"></div>
+      <div id="sheetNote" class="sheet-note hidden">
+        <span class="sheet-note-label">補充</span>
+        <div id="sheetNoteText" class="sheet-note-text"></div>
+        <button id="sheetNoteSpeakBtn" class="icon-btn sheet-note-speak hidden" type="button" aria-label="朗讀英文例句" title="朗讀英文">
+          <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+        </button>
+      </div>
       <div id="hint" class="hint-text"></div>
       <div id="spellArea" class="spell-area hidden">
         <div id="spellSlots" class="spell-slots"></div>
@@ -617,6 +681,9 @@ let spellAnswerShown = false;
 const mainTextEl = document.getElementById("mainText");
 const subTextEl = document.getElementById("subText");
 const hintEl = document.getElementById("hint");
+const sheetNote = document.getElementById("sheetNote");
+const sheetNoteText = document.getElementById("sheetNoteText");
+const sheetNoteSpeakBtn = document.getElementById("sheetNoteSpeakBtn");
 const speakBtn = document.getElementById("speakBtn");
 const aiBtn = document.getElementById("aiBtn");
 const showBtn = document.getElementById("showBtn");
@@ -691,6 +758,8 @@ function render() {
   quizOptionsEl.innerHTML = "";
   quizOptionsEl.classList.add("hidden");
   spellArea.classList.add("hidden");
+  sheetNote.classList.add("hidden");
+  sheetNoteSpeakBtn.classList.add("hidden");
   speakBtn.classList.add("hidden");
   aiBtn.classList.add("hidden"); 
 
@@ -742,6 +811,17 @@ function render() {
   if (mode === 3) {
     mainTextEl.textContent = current.p.zh;
     subTextEl.textContent = current.p.en;
+    if (current.p.note) {
+      sheetNoteText.textContent = current.p.note;
+      sheetNote.classList.remove("hidden");
+      if (/[A-Za-z]/.test(current.p.note)) {
+        sheetNoteSpeakBtn.classList.remove("hidden");
+        sheetNoteSpeakBtn.onclick = (event) => {
+          event.stopPropagation();
+          speak(current.p.note);
+        };
+      }
+    }
     hintEl.textContent = `順序瀏覽: ${seqIndex} / ${pairs.length}`;
   } else if (mode === 4) {
     mainTextEl.textContent = current.p.en;
@@ -1074,6 +1154,43 @@ aiModal.addEventListener('click', (event) => {
 function safeSplitLines(text) { return text.split(/\r?\n/).filter(x => x.trim()); }
 function containsCJK(str) { return /[\u4E00-\u9FFF]/.test(str); }
 
+function parseCsvRows(csv) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+
+  for (let i = 0; i < csv.length; i++) {
+    const char = csv[i];
+    if (quoted) {
+      if (char === '"' && csv[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        field += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ',') {
+      row.push(field.trim());
+      field = "";
+    } else if (char === '\n') {
+      row.push(field.trim());
+      if (row.some(value => value)) rows.push(row);
+      row = [];
+      field = "";
+    } else if (char !== '\r') {
+      field += char;
+    }
+  }
+
+  row.push(field.trim());
+  if (row.some(value => value)) rows.push(row);
+  return rows;
+}
+
 function parsePairs(text) {
   const lines = safeSplitLines(text);
   const arr = [];
@@ -1163,18 +1280,19 @@ async function importSheet() {
     if (!res.ok) throw new Error("連線錯誤");
     let csv = await res.text();
     if (csv.trim().startsWith("<!doctype")) throw new Error("權限不足或工作表名稱錯誤");
-    let lines = safeSplitLines(csv);
-    let newLinesText = [];
-    for (let L of lines) {
-      let cleanL = L.replace(/""/g, '"');
-      let parts = cleanL.split(",");
-      if (parts.length < 2) continue;
-      let c1 = parts[0].replace(/^"|"$/g, '').trim();
-      let c2 = parts[1].replace(/^"|"$/g, '').trim();
-      if (c1 && c2) newLinesText.push(`${c1} - ${c2}`);
+    const rows = parseCsvRows(csv);
+    const newPairs = [];
+    for (const columns of rows) {
+      const c1 = (columns[0] || "").trim();
+      const c2 = (columns[1] || "").trim();
+      const note = (columns[2] || "").trim();
+      if (!c1 || !c2) continue;
+
+      if (containsCJK(c1)) newPairs.push({ zh: c1, en: c2, note });
+      else if (containsCJK(c2)) newPairs.push({ zh: c2, en: c1, note });
+      else newPairs.push({ zh: c1, en: c2, note });
     }
-    if (!newLinesText.length) throw new Error("無資料");
-    let newPairs = parsePairs(newLinesText.join("\n"));
+    if (!newPairs.length) throw new Error("無資料");
     pairs = pairs.concat(newPairs); 
     syncTextArea();
     renderWordList();

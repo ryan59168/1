@@ -124,7 +124,7 @@ body {
   background: #f8fafc;
   color: var(--text-main);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   text-align: left;
 }
@@ -145,6 +145,21 @@ body {
   min-width: 0;
   font-size: 0.96rem;
   line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.sheet-note-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sheet-note-zh {
+  color: var(--text-sub);
+  font-size: 0.9rem;
+  line-height: 1.45;
   white-space: pre-wrap;
 }
 
@@ -592,7 +607,10 @@ iframe {
       <div id="subText" class="sub-text"></div>
       <div id="sheetNote" class="sheet-note hidden">
         <span class="sheet-note-label">補充</span>
-        <div id="sheetNoteText" class="sheet-note-text"></div>
+        <div class="sheet-note-copy">
+          <div id="sheetNoteText" class="sheet-note-text"></div>
+          <div id="sheetNoteZh" class="sheet-note-zh hidden"></div>
+        </div>
         <button id="sheetNoteSpeakBtn" class="icon-btn sheet-note-speak hidden" type="button" aria-label="朗讀英文例句" title="朗讀英文">
           <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
         </button>
@@ -683,6 +701,7 @@ const subTextEl = document.getElementById("subText");
 const hintEl = document.getElementById("hint");
 const sheetNote = document.getElementById("sheetNote");
 const sheetNoteText = document.getElementById("sheetNoteText");
+const sheetNoteZh = document.getElementById("sheetNoteZh");
 const sheetNoteSpeakBtn = document.getElementById("sheetNoteSpeakBtn");
 const speakBtn = document.getElementById("speakBtn");
 const aiBtn = document.getElementById("aiBtn");
@@ -759,6 +778,7 @@ function render() {
   quizOptionsEl.classList.add("hidden");
   spellArea.classList.add("hidden");
   sheetNote.classList.add("hidden");
+  sheetNoteZh.classList.add("hidden");
   sheetNoteSpeakBtn.classList.add("hidden");
   speakBtn.classList.add("hidden");
   aiBtn.classList.add("hidden"); 
@@ -811,14 +831,17 @@ function render() {
   if (mode === 3) {
     mainTextEl.textContent = current.p.zh;
     subTextEl.textContent = current.p.en;
-    if (current.p.note) {
-      sheetNoteText.textContent = current.p.note;
+    if (current.p.noteEn || current.p.noteZh) {
+      sheetNoteText.textContent = current.p.noteEn || "";
+      sheetNoteText.classList.toggle("hidden", !current.p.noteEn);
+      sheetNoteZh.textContent = current.p.noteZh || "";
+      sheetNoteZh.classList.toggle("hidden", !current.p.noteZh);
       sheetNote.classList.remove("hidden");
-      if (/[A-Za-z]/.test(current.p.note)) {
+      if (current.p.noteEn && /[A-Za-z]/.test(current.p.noteEn)) {
         sheetNoteSpeakBtn.classList.remove("hidden");
         sheetNoteSpeakBtn.onclick = (event) => {
           event.stopPropagation();
-          speak(current.p.note);
+          speak(current.p.noteEn);
         };
       }
     }
@@ -1285,12 +1308,13 @@ async function importSheet() {
     for (const columns of rows) {
       const c1 = (columns[0] || "").trim();
       const c2 = (columns[1] || "").trim();
-      const note = (columns[2] || "").trim();
+      const noteEn = (columns[2] || "").trim();
+      const noteZh = (columns[3] || "").trim();
       if (!c1 || !c2) continue;
 
-      if (containsCJK(c1)) newPairs.push({ zh: c1, en: c2, note });
-      else if (containsCJK(c2)) newPairs.push({ zh: c2, en: c1, note });
-      else newPairs.push({ zh: c1, en: c2, note });
+      if (containsCJK(c1)) newPairs.push({ zh: c1, en: c2, noteEn, noteZh });
+      else if (containsCJK(c2)) newPairs.push({ zh: c2, en: c1, noteEn, noteZh });
+      else newPairs.push({ zh: c1, en: c2, noteEn, noteZh });
     }
     if (!newPairs.length) throw new Error("無資料");
     pairs = pairs.concat(newPairs); 
